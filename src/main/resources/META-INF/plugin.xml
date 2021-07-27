@@ -1,19 +1,14 @@
 <idea-plugin>
-    <id>com.github.earthcomputer.classfileindexer</id>
-    <name>class-file-indexer</name>
-    <vendor>earthcomputer</vendor>
+    <id>net.earthcomputer.classfileindexer</id>
+    <name>Class File Indexer</name>
+    <vendor>Earthcomputer</vendor>
 
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.earthcomputer.classfileindexer.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.earthcomputer.classfileindexer.services.MyProjectService"/>
+        <fileBasedIndex implementation="net.earthcomputer.classfileindexer.ClassFileIndexExtension"/>
     </extensions>
-
-    <applicationListeners>
-        <listener class="com.github.earthcomputer.classfileindexer.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
 </idea-plugin>
