@@ -28,25 +28,27 @@ class ClassFileIndexExtension : FileBasedIndexExtension<BinaryIndexKey, Int>() {
         override fun save(out: DataOutput, value: BinaryIndexKey) {
             out.writeUTF(value.name)
             when (value) {
-                is ClassIndexKey -> out.writeByte(0)
+                is ClassIndexKey -> out.writeByte(ClassIndexKey.ID)
                 is FieldIndexKey -> {
-                    out.writeByte(1)
+                    out.writeByte(FieldIndexKey.ID)
                     out.writeUTF(value.owner)
                 }
                 is MethodIndexKey -> {
-                    out.writeByte(2)
+                    out.writeByte(MethodIndexKey.ID)
                     out.writeUTF(value.owner)
                     out.writeUTF(value.desc)
                 }
+                is StringConstantKey -> out.writeByte(StringConstantKey.ID)
             }
         }
 
         override fun read(input: DataInput): BinaryIndexKey {
             val name = input.readUTF()
             return when (input.readUnsignedByte()) {
-                0 -> ClassIndexKey(name)
-                1 -> FieldIndexKey(input.readUTF(), name)
-                2 -> MethodIndexKey(input.readUTF(), name, input.readUTF())
+                ClassIndexKey.ID -> ClassIndexKey(name)
+                FieldIndexKey.ID -> FieldIndexKey(input.readUTF(), name)
+                MethodIndexKey.ID -> MethodIndexKey(input.readUTF(), name, input.readUTF())
+                StringConstantKey.ID -> StringConstantKey(name)
                 else -> throw IOException("Unknown data type")
             }
         }
