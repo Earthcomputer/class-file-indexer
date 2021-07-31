@@ -38,7 +38,7 @@ class IndexerMethodVisitor(private val cv: IndexerClassVisitor) : MethodVisitor(
     }
 
     override fun visitFieldInsn(opcode: Int, owner: String, name: String, descriptor: String) {
-        cv.addFieldRef(owner, name)
+        cv.addFieldRef(owner, name, opcode == Opcodes.PUTSTATIC || opcode == Opcodes.PUTFIELD)
     }
 
     override fun visitMethodInsn(
@@ -59,22 +59,23 @@ class IndexerMethodVisitor(private val cv: IndexerClassVisitor) : MethodVisitor(
     ) {
         when (bootstrapMethodHandle.owner) {
             "java/lang/invoke/LambdaMetafactory" -> {
-                when (bootstrapMethodHandle.name) {
+                val invokedMethod = when (bootstrapMethodHandle.name) {
                     "metafactory" -> {
-                        if (bootstrapMethodArguments.size >= 3) {
-                            cv.addConstant(bootstrapMethodArguments[2])
-                        }
+                        if (bootstrapMethodArguments.size < 3) return
+                        bootstrapMethodArguments[2] as? Handle ?: return
                     }
                     "altMetafactory" -> {
-                        if (bootstrapMethodArguments.size >= 2) {
-                            (bootstrapMethodArguments[1] as? Array<*>)?.let {
-                                if (it.size >= 2) {
-                                    cv.addConstant(it[1])
-                                }
-                            }
-                        }
+                        if (bootstrapMethodArguments.size < 2) return
+                        val extraArgs = bootstrapMethodArguments[1] as? Array<*> ?: return
+                        if (extraArgs.size < 2) return
+                        extraArgs[1] as? Handle ?: return
                     }
+                    else -> return
                 }
+                if (invokedMethod.owner == cv.className) {
+                    cv.addLambdaLocationMapping("${invokedMethod.name}:${invokedMethod.desc}")
+                }
+                cv.addMethodRef(invokedMethod.owner, invokedMethod.name, invokedMethod.desc)
             }
             "java/lang/invoke/StringConcatFactory" -> {
                 when (bootstrapMethodHandle.name) {
@@ -82,9 +83,7 @@ class IndexerMethodVisitor(private val cv: IndexerClassVisitor) : MethodVisitor(
                         val methodType = Type.getMethodType(descriptor)
                         for (argumentType in methodType.argumentTypes) {
                             if (argumentType.sort == Type.OBJECT) {
-                                cv.addMethodRef(argumentType.internalName, "toString", "()Ljava/lang/String;")
-                            } else if (argumentType.sort != Type.ARRAY && argumentType.sort != Type.SHORT) {
-                                cv.addMethodRef("java/lang/String", "valueOf", "(${argumentType.descriptor})Ljava/lang/String;")
+                                cv.addRef(argumentType.internalName, ImplicitToStringKey.INSTANCE)
                             }
                         }
                         if (bootstrapMethodHandle.name == "makeConcatWithConstants") {
@@ -153,5 +152,9 @@ class IndexerMethodVisitor(private val cv: IndexerClassVisitor) : MethodVisitor(
     ): AnnotationVisitor {
         cv.addTypeDescriptor(descriptor)
         return IndexerAnnotationVisitor(cv)
+    }
+
+    override fun visitEnd() {
+        cv.locationStack.pop()
     }
 }

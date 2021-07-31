@@ -10,7 +10,7 @@ class IndexerAnnotationVisitor(private val cv: IndexerClassVisitor) : Annotation
     }
 
     override fun visitEnum(name: String?, descriptor: String, value: String) {
-        cv.addFieldRef(Type.getType(descriptor).internalName, value)
+        cv.addFieldRef(Type.getType(descriptor).internalName, value, false)
     }
 
     override fun visitAnnotation(name: String?, descriptor: String): AnnotationVisitor {

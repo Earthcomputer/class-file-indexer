@@ -20,4 +20,8 @@ class IndexerRecordComponentVisitor(private val cv: IndexerClassVisitor) : Recor
         cv.addTypeDescriptor(descriptor)
         return IndexerAnnotationVisitor(cv)
     }
+
+    override fun visitEnd() {
+        cv.locationStack.pop()
+    }
 }

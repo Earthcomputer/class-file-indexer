@@ -10,5 +10,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <fileBasedIndex implementation="net.earthcomputer.classfileindexer.ClassFileIndexExtension"/>
+        <referencesSearch implementation="net.earthcomputer.classfileindexer.ReferencesSearchExtension"/>
+        <methodReferencesSearch implementation="net.earthcomputer.classfileindexer.MethodReferencesSearchExtension"/>
+        <implicitToStringSearch implementation="net.earthcomputer.classfileindexer.ImplicitToStringSearchExtension"/>
     </extensions>
 </idea-plugin>

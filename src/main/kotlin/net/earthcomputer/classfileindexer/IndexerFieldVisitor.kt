@@ -20,4 +20,8 @@ class IndexerFieldVisitor(private val cv: IndexerClassVisitor) : FieldVisitor(Op
         cv.addTypeDescriptor(descriptor)
         return IndexerAnnotationVisitor(cv)
     }
+
+    override fun visitEnd() {
+        cv.locationStack.pop()
+    }
 }

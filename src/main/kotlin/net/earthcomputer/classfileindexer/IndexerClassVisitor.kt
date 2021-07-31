@@ -1,17 +1,31 @@
 package net.earthcomputer.classfileindexer
 
+import com.intellij.openapi.diagnostic.Logger
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.*
 
 class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
-    val index = mutableMapOf<BinaryIndexKey, Int>()
-    fun addClassRef(name: String) {
-        index.merge(ClassIndexKey(name), 1, Integer::sum)
+    lateinit var className: String
+    val index = mutableMapOf<String, MutableMap<BinaryIndexKey, MutableMap<String, Int>>>()
+    val locationStack = java.util.ArrayDeque<String>()
+
+    private val lambdaLocationMappings = mutableMapOf<String, MutableMap<String, Int>>()
+    private val syntheticMethods = mutableSetOf<String>()
+
+    fun addRef(name: String, key: BinaryIndexKey) {
+        index.computeIfAbsent(name) { mutableMapOf() }.computeIfAbsent(key) { mutableMapOf() }.merge(locationStack.peek(), 1, Integer::sum)
     }
-    fun addFieldRef(owner: String, name: String) {
-        index.merge(FieldIndexKey(owner, name), 1, Integer::sum)
+    fun addClassRef(name: String) {
+        addRef(name, ClassIndexKey.INSTANCE)
+    }
+    fun addFieldRef(owner: String, name: String, isWrite: Boolean) {
+        addRef(name, FieldIndexKey(owner, isWrite))
     }
     fun addMethodRef(owner: String, name: String, desc: String) {
-        index.merge(MethodIndexKey(owner, name, desc), 1, Integer::sum)
+        addRef(name, MethodIndexKey(owner, desc))
+    }
+
+    fun addLambdaLocationMapping(lambdaLocation: String) {
+        lambdaLocationMappings.computeIfAbsent(lambdaLocation) { mutableMapOf() }.merge(locationStack.peek(), 1, Integer::sum)
     }
 
     fun addTypeDescriptor(desc: String) {
@@ -25,7 +39,7 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     }
 
     fun addStringConstant(cst: String) {
-        index.merge(StringConstantKey(cst), 1, Integer::sum)
+        addRef(cst, StringConstantKey.INSTANCE)
     }
     fun addConstant(cst: Any?) {
         if (cst == null) return
@@ -33,10 +47,16 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
             is String -> addStringConstant(cst)
             is Type -> addTypeDescriptor(cst.descriptor)
             is Handle -> {
-                if (cst.tag == Opcodes.H_GETFIELD || cst.tag == Opcodes.H_GETSTATIC || cst.tag == Opcodes.H_PUTFIELD || cst.tag == Opcodes.H_PUTSTATIC) {
-                    addFieldRef(cst.owner, cst.name)
-                } else {
-                    addMethodRef(cst.owner, cst.name, cst.desc)
+                when (cst.tag) {
+                    Opcodes.H_GETFIELD, Opcodes.H_GETSTATIC -> {
+                        addFieldRef(cst.owner, cst.name, false)
+                    }
+                    Opcodes.H_PUTFIELD, Opcodes.H_PUTSTATIC -> {
+                        addFieldRef(cst.owner, cst.name, true)
+                    }
+                    else -> {
+                        addMethodRef(cst.owner, cst.name, cst.desc)
+                    }
                 }
             }
             is ConstantDynamic -> {
@@ -192,6 +212,8 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
         superName: String?,
         interfaces: Array<out String>?
     ) {
+        locationStack.push("")
+        className = name
         signature?.let { addClassSignature(it) }
         superName?.let { addClassRef(it) }
         interfaces?.forEach { addClassRef(it) }
@@ -212,7 +234,8 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
         return IndexerAnnotationVisitor(this)
     }
 
-    override fun visitRecordComponent(name: String?, descriptor: String, signature: String?): RecordComponentVisitor {
+    override fun visitRecordComponent(name: String, descriptor: String, signature: String?): RecordComponentVisitor {
+        locationStack.push("$name:$descriptor")
         addTypeDescriptor(descriptor)
         signature?.let { addFieldTypeSignature(it, 0, true) }
         return IndexerRecordComponentVisitor(this)
@@ -220,11 +243,12 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
 
     override fun visitField(
         access: Int,
-        name: String?,
+        name: String,
         descriptor: String,
         signature: String?,
         value: Any?
     ): FieldVisitor {
+        locationStack.push("$name:$descriptor")
         addTypeDescriptor(descriptor)
         signature?.let { addFieldTypeSignature(it, 0, true) }
         addConstant(value)
@@ -233,11 +257,15 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
 
     override fun visitMethod(
         access: Int,
-        name: String?,
+        name: String,
         descriptor: String,
         signature: String?,
         exceptions: Array<out String>?
     ): MethodVisitor {
+        locationStack.push("$name:$descriptor")
+        if ((access and Opcodes.ACC_SYNTHETIC) != 0) {
+            syntheticMethods.add(locationStack.peek())
+        }
         val desc = Type.getMethodType(descriptor)
         for (argumentType in desc.argumentTypes) {
             addTypeDescriptor(argumentType.descriptor)
@@ -248,8 +276,46 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
         return IndexerMethodVisitor(this)
     }
 
+    override fun visitEnd() {
+        locationStack.pop()
+        propagateLambdaLocations()
+    }
+
+    private fun propagateLambdaLocations() {
+        var changed = true
+        while (lambdaLocationMappings.isNotEmpty() && changed) {
+            changed = false
+            val lambdaLocItr = lambdaLocationMappings.iterator()
+            while (lambdaLocItr.hasNext()) {
+                val (lambdaLoc, targets) = lambdaLocItr.next()
+                val targetItr = targets.iterator()
+                while (targetItr.hasNext()) {
+                    val (targetLoc, countOfLambda) = targetItr.next()
+                    if (!lambdaLocationMappings.containsKey(targetLoc)) {
+                        changed = true
+                        targetItr.remove()
+                        for (keys in index.values) {
+                            for (locations in keys.values) {
+                                val countInLambda = locations.remove(lambdaLoc) ?: continue
+                                locations.merge(targetLoc, countOfLambda * countInLambda, Integer::sum)
+                            }
+                        }
+                    }
+                }
+                if (targets.isEmpty()) {
+                    lambdaLocItr.remove()
+                }
+            }
+        }
+
+        if (lambdaLocationMappings.isNotEmpty()) {
+            LOGGER.warn("$className: unable to propagate lambda locations")
+        }
+    }
+
     companion object {
-        val ILLEGAL_SIG_CHARS = setOf('.', ';', '[', '/', '<', '>', ':')
-        val BASE_TYPE_CHARS = setOf('B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z')
+        private val LOGGER = Logger.getInstance(IndexerClassVisitor::class.java)
+        private val ILLEGAL_SIG_CHARS = setOf('.', ';', '[', '/', '<', '>', ':')
+        private val BASE_TYPE_CHARS = setOf('B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z')
     }
 }
