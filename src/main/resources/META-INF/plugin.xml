@@ -8,6 +8,10 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
 
+    <applicationListeners>
+        <listener class="net.earthcomputer.classfileindexer.MyAppLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
     <extensions defaultExtensionNs="com.intellij">
         <fileBasedIndex implementation="net.earthcomputer.classfileindexer.ClassFileIndexExtension"/>
         <referencesSearch implementation="net.earthcomputer.classfileindexer.ReferencesSearchExtension"/>

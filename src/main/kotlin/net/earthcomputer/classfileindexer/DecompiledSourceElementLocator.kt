@@ -4,11 +4,11 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 
-open class DecompiledSourceElementLocator<T: PsiElement>(location: String, private val index: Int) : JavaElementVisitor() {
+open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val index: Int) : JavaRecursiveElementVisitor() {
     private var foundElement: T? = null
     private var foundCount = 0
-    private val locationName = location.substringBefore(':')
-    private val locationDesc = location.substringAfter(':')
+    val locationName = location.substringBefore(':')
+    val locationDesc = location.substringAfter(':')
     private val locationIsMethod = locationDesc.contains("(")
     private var constructorCallsThis = false
 
