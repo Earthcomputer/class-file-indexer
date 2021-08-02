@@ -13,10 +13,13 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
+import java.lang.instrument.UnmodifiableClassException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
@@ -25,44 +28,91 @@ public class MyAgent implements ClassFileTransformer {
 
     private static final String USAGE_INFO = "com/intellij/usageView/UsageInfo";
     private static final String USAGE_INFO_2_USAGE_ADAPTER = "com/intellij/usages/UsageInfo2UsageAdapter";
+    private static final String PSI_UTIL = "com/intellij/psi/util/PsiUtil";
+    private static final String JAVA_READ_WRITE_ACCESS_DETECTOR = "com/intellij/codeInsight/highlighting/JavaReadWriteAccessDetector";
 
-    public static void agentmain(String s, Instrumentation instrumentation) {
+    public static void agentmain(String s, Instrumentation instrumentation) throws UnmodifiableClassException {
         instrumentation.addTransformer(new MyAgent(), true);
+
+        List<Class<?>> classesToRetransform = new ArrayList<>();
+        for (Class<?> clazz : instrumentation.getAllLoadedClasses()) {
+            String className = clazz.getName();
+            if (USAGE_INFO.equals(className)
+                    || USAGE_INFO_2_USAGE_ADAPTER.equals(className)
+                    || PSI_UTIL.equals(className)
+                    || JAVA_READ_WRITE_ACCESS_DETECTOR.equals(className)) {
+                classesToRetransform.add(clazz);
+            }
+        }
+        instrumentation.retransformClasses(classesToRetransform.toArray(new Class[0]));
     }
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-        if (className.equals(USAGE_INFO)) {
-            return transformClass(
-                    classfileBuffer,
-                    loader,
-                    "net.earthcomputer.classfileindexer.IHasNavigationOffset",
-                    "getNavigationOffset",
-                    "()I",
-                    new HookClassVisitor.Target(
+        try {
+            switch (className) {
+                case USAGE_INFO:
+                    return transformClass(
+                            classfileBuffer,
+                            loader,
+                            "net.earthcomputer.classfileindexer.IHasNavigationOffset",
                             "getNavigationOffset",
                             "()I",
-                            UsageInfoGetNavigationOffsetVisitor::new
-                    )
-            );
-        } else if (className.equals(USAGE_INFO_2_USAGE_ADAPTER)) {
-            return transformClass(
-                    classfileBuffer,
-                    loader,
-                    "net.earthcomputer.classfileindexer.IHasCustomDescription",
-                    "getCustomDescription",
-                    "()[Lcom/intellij/usages/TextChunk;",
-                    new HookClassVisitor.Target(
-                            "getPlainText",
-                            "()Ljava/lang/String;",
-                            HasCustomDescriptionVisitor::new
-                    ),
-                    new HookClassVisitor.Target(
-                            "initChunks",
+                            new HookClassVisitor.Target(
+                                    "getNavigationOffset",
+                                    "()I",
+                                    UsageInfoGetNavigationOffsetVisitor::new
+                            )
+                    );
+                case USAGE_INFO_2_USAGE_ADAPTER:
+                    return transformClass(
+                            classfileBuffer,
+                            loader,
+                            "net.earthcomputer.classfileindexer.IHasCustomDescription",
+                            "getCustomDescription",
                             "()[Lcom/intellij/usages/TextChunk;",
-                            InitChunksMethodVisitor::new
-                    )
-            );
+                            new HookClassVisitor.Target(
+                                    "getPlainText",
+                                    "()Ljava/lang/String;",
+                                    HasCustomDescriptionVisitor::new
+                            ),
+                            new HookClassVisitor.Target(
+                                    "initChunks",
+                                    "()[Lcom/intellij/usages/TextChunk;",
+                                    InitChunksMethodVisitor::new
+                            )
+                    );
+                case PSI_UTIL:
+                    return transformClass(
+                            classfileBuffer,
+                            loader,
+                            "net.earthcomputer.classfileindexer.IIsWriteOverride",
+                            "isWrite",
+                            "()Z",
+                            new HookClassVisitor.Target(
+                                    "isAccessedForWriting",
+                                    "(Lcom/intellij/psi/PsiExpression;)Z",
+                                    IsAccessedForWriteMethodVisitor::new
+                            )
+                    );
+                case JAVA_READ_WRITE_ACCESS_DETECTOR:
+                    return transformClass(
+                            classfileBuffer,
+                            loader,
+                            "net.earthcomputer.classfileindexer.IIsWriteOverride",
+                            "isWrite",
+                            "()Z",
+                            new HookClassVisitor.Target(
+                                    "getExpressionAccess",
+                                    "(Lcom/intellij/psi/PsiElement;)Lcom/intellij/codeInsight/highlighting/ReadWriteAccessDetector$Access;",
+                                    JavaReadWriteAccessDetectorMethodVisitor::new
+                            )
+                    );
+            }
+        } catch (Throwable t) {
+            // since the jdk does not log it for us
+            t.printStackTrace();
+            throw t;
         }
         return classfileBuffer;
     }
@@ -147,6 +197,7 @@ public class MyAgent implements ClassFileTransformer {
 
         }
         private final HookInfo hookInfo;
+        private boolean hadClinit = false;
 
         public HookClassVisitor(ClassVisitor classVisitor, String interfaceName, String interfaceMethod, String interfaceMethodDesc, Target... targets) {
             super(Opcodes.ASM9, classVisitor);
@@ -161,6 +212,15 @@ public class MyAgent implements ClassFileTransformer {
 
         @Override
         public void visitEnd() {
+            if (!hadClinit) {
+                MethodVisitor mv = visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "<clinit>", "()V", null, null);
+                if (mv != null) {
+                    mv.visitCode();
+                    mv.visitInsn(Opcodes.RETURN);
+                    mv.visitMaxs(0, 0);
+                    mv.visitEnd();
+                }
+            }
             FieldVisitor fv = visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL, hookInfo.hookClassField, "Ljava/lang/Class;", null, null);
             if (fv != null)
                 fv.visitEnd();
@@ -174,6 +234,7 @@ public class MyAgent implements ClassFileTransformer {
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
             if ("<clinit>".equals(name)) {
+                hadClinit = true;
                 return new HookClinitVisitor(mv, hookInfo);
             }
             for (Target target : hookInfo.targets) {
@@ -435,6 +496,48 @@ public class MyAgent implements ClassFileTransformer {
                 visitInsn(Opcodes.ARETURN);
                 addEpilogue();
             }
+        }
+    }
+
+    private static class IsAccessedForWriteMethodVisitor extends HookMethodVisitor {
+        public IsAccessedForWriteMethodVisitor(MethodVisitor methodVisitor, HookClassVisitor.HookInfo hookInfo) {
+            super(methodVisitor, hookInfo);
+        }
+
+        @Override
+        public void visitCode() {
+            super.visitCode();
+            visitVarInsn(Opcodes.ALOAD, 0);
+            addPrologue();
+            visitVarInsn(Opcodes.ALOAD, 0);
+            addInterfaceCall();
+            visitInsn(Opcodes.IRETURN);
+            addEpilogue();
+        }
+    }
+
+    private static class JavaReadWriteAccessDetectorMethodVisitor extends HookMethodVisitor {
+        public JavaReadWriteAccessDetectorMethodVisitor(MethodVisitor methodVisitor, HookClassVisitor.HookInfo hookInfo) {
+            super(methodVisitor, hookInfo);
+        }
+
+        @Override
+        public void visitCode() {
+            super.visitCode();
+            visitVarInsn(Opcodes.ALOAD, 1);
+            addPrologue();
+            visitVarInsn(Opcodes.ALOAD, 1);
+            addInterfaceCall();
+            Label falseLabel = new Label();
+            Label returnLabel = new Label();
+            visitJumpInsn(Opcodes.IFEQ, falseLabel);
+            visitFieldInsn(Opcodes.GETSTATIC, "com/intellij/codeInsight/highlighting/ReadWriteAccessDetector$Access", "Write", "Lcom/intellij/codeInsight/highlighting/ReadWriteAccessDetector$Access;");
+            visitJumpInsn(Opcodes.GOTO, returnLabel);
+            visitLabel(falseLabel);
+            visitFieldInsn(Opcodes.GETSTATIC, "com/intellij/codeInsight/highlighting/ReadWriteAccessDetector$Access", "Read", "Lcom/intellij/codeInsight/highlighting/ReadWriteAccessDetector$Access;");
+            visitLabel(returnLabel);
+            visitInsn(Opcodes.ARETURN);
+            addEpilogue();
         }
     }
 

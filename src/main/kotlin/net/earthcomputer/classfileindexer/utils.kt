@@ -107,19 +107,24 @@ fun getTypeFromDescriptor(project: Project, scope: GlobalSearchScope, desc: Type
 }
 
 fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: () -> Boolean, action: () -> Unit): Boolean {
+    // avoid deadlocks, IndexNotReadyException may be thrown later
+    val shouldIgnoreSmart = ApplicationManager.getApplication().isReadAccessAllowed
+
     val dumbService = DumbService.getInstance(project)
     val progressManager = ProgressManager.getInstance()
 
     var completed = false
     var canceled = false
     while (!completed) {
-        dumbService.waitForSmartMode()
+        if (!shouldIgnoreSmart) {
+            dumbService.waitForSmartMode()
+        }
         progressManager.runInReadActionWithWriteActionPriority(action@{
             if (!project.isOpen || !validityCheck()) {
                 canceled = true
                 return@action
             }
-            if (dumbService.isDumb) {
+            if (!shouldIgnoreSmart && dumbService.isDumb) {
                 return@action
             }
             action()

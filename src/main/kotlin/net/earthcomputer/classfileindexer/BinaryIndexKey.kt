@@ -3,6 +3,7 @@ package net.earthcomputer.classfileindexer
 sealed class BinaryIndexKey(val id: Int) {
     override fun hashCode() = id
     override fun equals(other: Any?) = id == (other as? BinaryIndexKey)?.id
+    override fun toString() = "${javaClass.simpleName}.INSTANCE"
 }
 class ClassIndexKey private constructor() : BinaryIndexKey(ID) {
     companion object {
@@ -17,6 +18,7 @@ class FieldIndexKey(val owner: String, val isWrite: Boolean) : BinaryIndexKey(ID
         val that = other as FieldIndexKey
         return owner == that.owner && isWrite == that.isWrite
     }
+    override fun toString() = "FieldIndexKey($owner, $isWrite)"
     companion object {
         const val ID = 1
     }
@@ -28,6 +30,7 @@ class MethodIndexKey(val owner: String, val desc: String) : BinaryIndexKey(ID) {
         val that = other as MethodIndexKey
         return owner == that.owner && desc == that.desc
     }
+    override fun toString() = "MethodIndexKey($owner, $desc)"
     companion object {
         const val ID = 2
     }

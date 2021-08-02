@@ -35,10 +35,8 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
             val v = value[ImplicitToStringKey.INSTANCE]
             if (v != null) {
                 files[file] = v
-                true
-            } else {
-                false
             }
+            true
         }, scope)
         if (files.isEmpty()) {
             return

@@ -3,10 +3,9 @@ package net.earthcomputer.classfileindexer
 import com.intellij.ide.highlighter.JavaHighlightingColors
 import com.intellij.ide.util.EditorHelper
 import com.intellij.openapi.editor.markup.TextAttributes
+import com.intellij.openapi.util.TextRange
 import com.intellij.pom.Navigatable
-import com.intellij.psi.PsiCompiledFile
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiJavaFile
+import com.intellij.psi.*
 import com.intellij.psi.impl.FakePsiElement
 import com.intellij.usageView.UsageTreeColors
 import com.intellij.usageView.UsageTreeColorsScheme
@@ -22,8 +21,16 @@ open class FakeDecompiledElement<T: PsiElement>(
 ) : FakePsiElement(), Navigatable, IHasNavigationOffset, IHasCustomDescription {
 
     companion object {
-        val USAGE_VIEW_UTIL = UsageViewUtil::class.java.name
-        val USAGE_INFO_2_UTIL_ADAPTER = UsageInfo2UsageAdapter::class.java.name
+        private val USAGE_VIEW_UTIL: String = UsageViewUtil::class.java.name
+        private val USAGE_INFO_2_UTIL_ADAPTER: String = UsageInfo2UsageAdapter::class.java.name
+    }
+
+    fun createReference(target: PsiElement): PsiReference {
+        val self = this
+        val ref = PsiReferenceBase.createSelfReference(this, target)
+        return object : PsiReference by ref {
+            override fun getRangeInElement() = self.textRange ?: TextRange.EMPTY_RANGE
+        }
     }
 
     override fun getParent() = myParent
