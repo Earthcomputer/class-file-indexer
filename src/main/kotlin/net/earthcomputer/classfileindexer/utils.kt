@@ -52,11 +52,22 @@ fun Type.isPrimitive() = sort != Type.ARRAY && sort != Type.OBJECT && sort != Ty
 
 fun isDescriptorOfType(desc: String, type: PsiType) = isDescriptorOfType(Type.getType(desc), type)
 
+private val SLASHES_AND_DOLLARS = "[/$]".toRegex()
 fun isDescriptorOfType(desc: Type, type: PsiType): Boolean {
     return when (type) {
         is PsiArrayType -> desc.sort == Type.ARRAY && desc.dimensions == type.arrayDimensions && isDescriptorOfType(desc.elementType, type.deepComponentType)
         is PsiPrimitiveType -> desc.isPrimitive() && type.kind.binaryName == desc.descriptor
-        is PsiClassType -> desc.sort == Type.OBJECT && desc.internalName == type.resolve()?.internalName
+        is PsiClassType -> {
+            if (desc.sort != Type.OBJECT) {
+                return false
+            }
+            val resolved = type.resolve()
+            if (resolved != null) {
+                return resolved.internalName == desc.internalName
+            }
+            // the best we can do
+            desc.internalName.replace(SLASHES_AND_DOLLARS, ".").endsWith(type.className)
+        }
         else -> false
     }
 }

@@ -12,7 +12,9 @@ import com.intellij.usageView.UsageTreeColorsScheme
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.usages.TextChunk
 import com.intellij.usages.UsageInfo2UsageAdapter
+import com.intellij.usages.impl.UsagePreviewPanel
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
+import java.util.stream.Collectors
 
 open class FakeDecompiledElement<T: PsiElement>(
     private val id: Int,
@@ -24,6 +26,7 @@ open class FakeDecompiledElement<T: PsiElement>(
     companion object {
         private val USAGE_VIEW_UTIL: String = UsageViewUtil::class.java.name
         private val USAGE_INFO_2_UTIL_ADAPTER: String = UsageInfo2UsageAdapter::class.java.name
+        private val USAGE_PREVIEW_PANEL: String = UsagePreviewPanel::class.java.name
     }
 
     fun createReference(target: PsiElement): PsiReference {
@@ -50,33 +53,46 @@ open class FakeDecompiledElement<T: PsiElement>(
 
     override fun canNavigate() = true
 
-    override fun getTextRange() = TextRange(id * 2, id * 2 + 1)
+    override fun getTextRange() = getTextRange(false)
+
+    private fun getTextRange(shiftForCursor: Boolean): TextRange {
+        val stackFrames = StackWalker.getInstance().walk { stream ->
+            stream.dropWhile { !it.className.startsWith("com.intellij.") }
+                .dropWhile { it.methodName == "getNavigationOffset" || it.methodName == "getNavigationRange" }
+                .limit(2)
+                .collect(Collectors.toList())
+        } ?: return TextRange(id * 2, id * 2 + 1)
+        val reason = stackFrames.firstOrNull() ?: return TextRange(id * 2, id * 2 + 1)
+        val reasonClass = reason.className
+        val methodName = reason.methodName
+        val isHighlightMethod = reasonClass == USAGE_PREVIEW_PANEL && methodName == "highlight"
+        return if ((reasonClass == USAGE_VIEW_UTIL && methodName == "navigateTo")
+            || (reasonClass == USAGE_INFO_2_UTIL_ADAPTER && methodName == "getDescriptor")
+            || isHighlightMethod) {
+            val element = findElement() ?: return TextRange(id * 2, id * 2 + 1)
+            val range = element.textRange ?: return TextRange(id * 2, id * 2 + 1)
+            val secondFrame = stackFrames.getOrNull(1) ?: return TextRange(id * 2, id * 2 + 1)
+            if (shiftForCursor || isHighlightMethod || (secondFrame.className == USAGE_INFO_2_UTIL_ADAPTER && secondFrame.methodName == "openTextEditor")) {
+                range.shiftRight(element.textOffset - range.startOffset)
+            } else {
+                range
+            }
+        } else {
+            TextRange(id * 2, id * 2 + 1)
+        }
+    }
 
     override fun getTextRangeInParent() = textRange
 
     override fun getTextLength() = 1
 
-    override fun getTextOffset() = id * 2
+    override fun getTextOffset() = getTextRange(true).startOffset
 
     override fun getText() = "A"
 
     override fun getLineNumber() = id
 
-    override fun getNavigationOffset(): Int {
-        val reason = StackWalker.getInstance().walk { stream ->
-            stream.dropWhile { !it.className.startsWith("com.intellij.") }
-                .dropWhile { it.methodName == "getNavigationOffset" }
-                .findFirst().orElse(null)
-        } ?: return 0
-        val reasonClass = reason.className
-        val methodName = reason.methodName
-        return if ((reasonClass == USAGE_VIEW_UTIL && methodName == "navigateTo")
-            || (reasonClass == USAGE_INFO_2_UTIL_ADAPTER && methodName == "getDescriptor")) {
-            findElement()?.textOffset ?: 0
-        } else {
-            0
-        }
-    }
+    override fun getNavigationOffset() = getTextRange(true).startOffset
 
     override fun getCustomDescription(): Array<TextChunk> {
         val colorScheme = UsageTreeColorsScheme.getInstance().scheme
