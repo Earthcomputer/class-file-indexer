@@ -41,20 +41,22 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
         if (files.isEmpty()) {
             return
         }
+        var id = 0
         for ((file, occurrences) in files) {
             val psiFile = PsiManager.getInstance(owningClass.project).findFile(file) as? PsiCompiledFile ?: continue
             for ((location, count) in occurrences) {
                 repeat(count) { i ->
-                    consumer.process(ImplicitToStringElement(psiFile, ImplicitToStringLocator(internalName, location, i)))
+                    consumer.process(ImplicitToStringElement(id++, psiFile, ImplicitToStringLocator(internalName, location, i)))
                 }
             }
         }
     }
 
     class ImplicitToStringElement(
+        id: Int,
         file: PsiCompiledFile,
         locator: DecompiledSourceElementLocator<PsiExpression>
-    ) : FakeDecompiledElement<PsiExpression>(file, file, locator), PsiExpression {
+    ) : FakeDecompiledElement<PsiExpression>(id, file, file, locator), PsiExpression {
         override fun getType(): PsiType {
             return JavaPsiFacade.getElementFactory(file.project).createTypeByFQClassName(CommonClassNames.JAVA_LANG_STRING)
         }

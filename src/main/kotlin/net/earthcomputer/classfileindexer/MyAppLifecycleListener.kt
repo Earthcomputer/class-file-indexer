@@ -66,6 +66,7 @@ class MyAppLifecycleListener : AppLifecycleListener {
             copyAgentClass("$AGENT_CLASS_NAME\$InitChunksMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$IsAccessedForWriteMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$JavaReadWriteAccessDetectorMethodVisitor")
+            copyAgentClass("$AGENT_CLASS_NAME\$UsageInfoLineNumberMethodVisitor")
 
             copyAllAgentClasses("net.earthcomputer.classindexfinder.libs.org.objectweb.asm.", ::writeEntry)
         }

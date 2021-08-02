@@ -42,13 +42,14 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
                     if (readFiles.isEmpty() && writeFiles.isEmpty()) {
                         return@scope
                     }
+                    var id = 0
                     fun processFiles(files: Map<VirtualFile, MutableMap<String, Int>>, isWrite: Boolean) {
                         for ((file, occurrences) in files) {
                             val psiFile = PsiManager.getInstance(queryParameters.project).findFile(file) as? PsiCompiledFile ?: continue
                             for ((location, count) in occurrences) {
                                 repeat(count) { i ->
                                     consumer.process(
-                                        FieldRefElement(psiFile, FieldLocator(element, isWrite, location, i), isWrite)
+                                        FieldRefElement(id++, psiFile, FieldLocator(element, isWrite, location, i), isWrite)
                                             .createReference(element)
                                     )
                                 }
@@ -68,10 +69,11 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
     }
 
     class FieldRefElement(
+        id: Int,
         file: PsiCompiledFile,
         locator: DecompiledSourceElementLocator<PsiElement>,
         private val myIsWrite: Boolean
-    ) : FakeDecompiledElement<PsiElement>(file, file, locator), PsiElement, IIsWriteOverride {
+    ) : FakeDecompiledElement<PsiElement>(id, file, file, locator), PsiElement, IIsWriteOverride {
         override fun isWrite() = myIsWrite
     }
 }

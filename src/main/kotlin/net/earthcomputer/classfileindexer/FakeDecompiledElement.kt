@@ -15,9 +15,10 @@ import com.intellij.usages.UsageInfo2UsageAdapter
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
 
 open class FakeDecompiledElement<T: PsiElement>(
+    private val id: Int,
     protected val file: PsiCompiledFile,
     private val myParent: PsiElement,
-    private val locator: DecompiledSourceElementLocator<T>
+    private val locator: DecompiledSourceElementLocator<T>,
 ) : FakePsiElement(), Navigatable, IHasNavigationOffset, IHasCustomDescription {
 
     companion object {
@@ -29,7 +30,7 @@ open class FakeDecompiledElement<T: PsiElement>(
         val self = this
         val ref = PsiReferenceBase.createSelfReference(this, target)
         return object : PsiReference by ref {
-            override fun getRangeInElement() = self.textRange ?: TextRange.EMPTY_RANGE
+            override fun getRangeInElement() = self.textRange
         }
     }
 
@@ -48,6 +49,18 @@ open class FakeDecompiledElement<T: PsiElement>(
     }
 
     override fun canNavigate() = true
+
+    override fun getTextRange() = TextRange(id * 2, id * 2 + 1)
+
+    override fun getTextRangeInParent() = textRange
+
+    override fun getTextLength() = 1
+
+    override fun getTextOffset() = id * 2
+
+    override fun getText() = "A"
+
+    override fun getLineNumber() = id
 
     override fun getNavigationOffset(): Int {
         val reason = StackWalker.getInstance().walk { stream ->

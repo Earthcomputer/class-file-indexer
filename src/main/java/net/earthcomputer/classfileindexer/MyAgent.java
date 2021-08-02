@@ -65,7 +65,7 @@ public class MyAgent implements ClassFileTransformer {
                             )
                     );
                 case USAGE_INFO_2_USAGE_ADAPTER:
-                    return transformClass(
+                    classfileBuffer = transformClass(
                             classfileBuffer,
                             loader,
                             "net.earthcomputer.classfileindexer.IHasCustomDescription",
@@ -80,6 +80,18 @@ public class MyAgent implements ClassFileTransformer {
                                     "initChunks",
                                     "()[Lcom/intellij/usages/TextChunk;",
                                     InitChunksMethodVisitor::new
+                            )
+                    );
+                    return transformClass(
+                            classfileBuffer,
+                            loader,
+                            "net.earthcomputer.classfileindexer.IHasNavigationOffset",
+                            "getLineNumber",
+                            "()I",
+                            new HookClassVisitor.Target(
+                                    "<init>",
+                                    "(Lcom/intellij/usageView/UsageInfo;)V",
+                                    UsageInfoLineNumberMethodVisitor::new
                             )
                     );
                 case PSI_UTIL:
@@ -538,6 +550,27 @@ public class MyAgent implements ClassFileTransformer {
             visitLabel(returnLabel);
             visitInsn(Opcodes.ARETURN);
             addEpilogue();
+        }
+    }
+
+    private static class UsageInfoLineNumberMethodVisitor extends HookMethodVisitor {
+        public UsageInfoLineNumberMethodVisitor(MethodVisitor methodVisitor, HookClassVisitor.HookInfo hookInfo) {
+            super(methodVisitor, hookInfo);
+        }
+
+        @Override
+        public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+            if (opcode == Opcodes.PUTFIELD && owner.equals(USAGE_INFO_2_USAGE_ADAPTER) && name.equals("myLineNumber")) {
+                visitVarInsn(Opcodes.ALOAD, 0);
+                visitMethodInsn(Opcodes.INVOKEVIRTUAL, USAGE_INFO_2_USAGE_ADAPTER, "getElement", "()Lcom/intellij/psi/PsiElement;", false);
+                addPrologue();
+                visitInsn(Opcodes.POP);
+                visitVarInsn(Opcodes.ALOAD, 0);
+                visitMethodInsn(Opcodes.INVOKEVIRTUAL, USAGE_INFO_2_USAGE_ADAPTER, "getElement", "()Lcom/intellij/psi/PsiElement;", false);
+                addInterfaceCall();
+                addEpilogue();
+            }
+            super.visitFieldInsn(opcode, owner, name, descriptor);
         }
     }
 
