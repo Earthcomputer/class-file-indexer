@@ -126,7 +126,7 @@ open class FakeDecompiledElement<T: PsiElement>(
             ret += TextChunk(TextAttributes(), " ")
         } else if (locator.locationDesc.isNotEmpty()) {
             ret.addAll(makePresentableType(Type.getType(locator.locationDesc)))
-            ret += TextChunk(TextAttributes(), "")
+            ret += TextChunk(TextAttributes(), " ")
         }
 
         val nameAttr = if (methodType != null) {

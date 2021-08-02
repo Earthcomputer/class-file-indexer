@@ -12,8 +12,7 @@ import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
 
 private val internalNamesCache = MapMaker().weakKeys().concurrencyLevel(4).makeMap<PsiClass, CachedValue<String?>>()
 private fun PsiClass.computeInternalName(): String? {
-    qualifiedName?.let { return it.replace('.', '/') }
-    val containingClass = containingClass ?: return null
+    val containingClass = containingClass ?: return qualifiedName?.replace('.', '/')
     val containingInternalName = containingClass.internalName ?: return null
     val name = name
     if (name != null) {
@@ -61,12 +60,16 @@ fun isDescriptorOfType(desc: Type, type: PsiType): Boolean {
             if (desc.sort != Type.OBJECT) {
                 return false
             }
+            val heuristic = desc.internalName.replace(SLASHES_AND_DOLLARS, ".").endsWith(type.className)
+            if (!heuristic) {
+                return false
+            }
             val resolved = type.resolve()
             if (resolved != null) {
                 return resolved.internalName == desc.internalName
             }
             // the best we can do
-            desc.internalName.replace(SLASHES_AND_DOLLARS, ".").endsWith(type.className)
+            heuristic
         }
         else -> false
     }
