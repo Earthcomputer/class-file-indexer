@@ -1,13 +1,19 @@
 package net.earthcomputer.classfileindexer
 
+import com.intellij.ide.highlighter.JavaHighlightingColors
 import com.intellij.ide.util.EditorHelper
+import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiCompiledFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.impl.FakePsiElement
+import com.intellij.usageView.UsageTreeColors
+import com.intellij.usageView.UsageTreeColorsScheme
 import com.intellij.usageView.UsageViewUtil
+import com.intellij.usages.TextChunk
 import com.intellij.usages.UsageInfo2UsageAdapter
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
 
 open class FakeDecompiledElement<T: PsiElement>(
     protected val file: PsiCompiledFile,
@@ -52,7 +58,72 @@ open class FakeDecompiledElement<T: PsiElement>(
         }
     }
 
-    override fun getCustomDescription() = "${locator.locationName}:${locator.locationDesc} #${locator.index}"
+    override fun getCustomDescription(): Array<TextChunk> {
+        val colorScheme = UsageTreeColorsScheme.getInstance().scheme
+        val ret = mutableListOf(TextChunk(colorScheme.getAttributes(UsageTreeColors.USAGE_LOCATION), "#${locator.index + 1}"))
+
+        fun makePresentableType(type: Type): List<TextChunk> {
+            val plainType = if (type.sort == Type.ARRAY) {
+                type.elementType
+            } else {
+                type
+            }
+            val plainSimpleName = plainType.className.split('.', '$').last()
+            val plainAttr = if (plainType.isPrimitive()) {
+                colorScheme.getAttributes(JavaHighlightingColors.KEYWORD)
+            } else {
+                colorScheme.getAttributes(JavaHighlightingColors.CLASS_NAME_ATTRIBUTES)
+            }
+            return when (type.sort) {
+                Type.ARRAY -> listOf(
+                    TextChunk(plainAttr, plainSimpleName),
+                    TextChunk(colorScheme.getAttributes(JavaHighlightingColors.BRACKETS), "[]".repeat(type.dimensions))
+                )
+                else -> listOf(TextChunk(plainAttr, plainSimpleName))
+            }
+        }
+
+        val methodType = if (locator.locationIsMethod) Type.getMethodType(locator.locationDesc) else null
+
+        if (methodType != null) {
+            ret.addAll(makePresentableType(methodType.returnType))
+            ret += TextChunk(TextAttributes(), " ")
+        } else if (locator.locationDesc.isNotEmpty()) {
+            ret.addAll(makePresentableType(Type.getType(locator.locationDesc)))
+            ret += TextChunk(TextAttributes(), "")
+        }
+
+        val nameAttr = if (methodType != null) {
+            colorScheme.getAttributes(JavaHighlightingColors.METHOD_DECLARATION_ATTRIBUTES)
+        } else {
+            colorScheme.getAttributes(JavaHighlightingColors.INSTANCE_FIELD_ATTRIBUTES)
+        }
+        ret += TextChunk(nameAttr, locator.locationName)
+
+        if (methodType != null) {
+            ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.PARENTHESES), "(")
+            val argTypes = methodType.argumentTypes
+            argTypes.asSequence().map {
+                makePresentableType(it)
+            }.withIndex().flatMap { (index, it) ->
+                if (index == 0) {
+                    sequenceOf(it)
+                } else {
+                    sequenceOf(
+                        listOf(
+                            TextChunk(colorScheme.getAttributes(JavaHighlightingColors.COMMA), ","),
+                            TextChunk(TextAttributes(), " ")
+                        ),
+                        it
+                    )
+                }
+            }.flatMap { it.asSequence() }
+            .forEach { ret += it }
+            ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.PARENTHESES), ")")
+        }
+
+        return ret.toTypedArray()
+    }
 
     private fun findElement(): T? {
         val clazz = (file.decompiledPsiFile as? PsiJavaFile)?.classes?.firstOrNull() ?: return null

@@ -51,7 +51,7 @@ public class MyAgent implements ClassFileTransformer {
                     loader,
                     "net.earthcomputer.classfileindexer.IHasCustomDescription",
                     "getCustomDescription",
-                    "()Ljava/lang/String;",
+                    "()[Lcom/intellij/usages/TextChunk;",
                     new HookClassVisitor.Target(
                             "getPlainText",
                             "()Ljava/lang/String;",
@@ -366,6 +366,34 @@ public class MyAgent implements ClassFileTransformer {
                 addPrologue();
                 visitVarInsn(Opcodes.ALOAD, var);
                 addInterfaceCall();
+                visitVarInsn(Opcodes.ASTORE, var);
+                visitVarInsn(Opcodes.ALOAD, var);
+                visitInsn(Opcodes.ARRAYLENGTH);
+                visitVarInsn(Opcodes.ISTORE, var + 1);
+                visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+                visitInsn(Opcodes.DUP);
+                visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+                visitVarInsn(Opcodes.ASTORE, var + 2);
+                visitInsn(Opcodes.ICONST_0);
+                visitVarInsn(Opcodes.ISTORE, var + 3);
+                Label loopCondition = new Label();
+                visitJumpInsn(Opcodes.GOTO, loopCondition);
+                Label loopBody = new Label();
+                visitLabel(loopBody);
+                visitVarInsn(Opcodes.ALOAD, var + 2);
+                visitVarInsn(Opcodes.ALOAD, var);
+                visitVarInsn(Opcodes.ILOAD, var + 3);
+                visitInsn(Opcodes.AALOAD);
+                visitMethodInsn(Opcodes.INVOKEVIRTUAL, "com/intellij/usages/TextChunk", "getText", "()Ljava/lang/String;", false);
+                visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+                visitInsn(Opcodes.POP);
+                visitIincInsn(var + 3, 1);
+                visitLabel(loopCondition);
+                visitVarInsn(Opcodes.ILOAD, var + 3);
+                visitVarInsn(Opcodes.ILOAD, var + 1);
+                visitJumpInsn(Opcodes.IF_ICMPLT, loopBody);
+                visitVarInsn(Opcodes.ALOAD, var + 2);
+                visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
                 visitInsn(Opcodes.ARETURN);
                 addEpilogue();
             }
@@ -394,19 +422,8 @@ public class MyAgent implements ClassFileTransformer {
                 waitingForAstore = false;
                 visitVarInsn(Opcodes.ALOAD, var);
                 addPrologue();
-                visitInsn(Opcodes.ICONST_1);
-                visitTypeInsn(Opcodes.ANEWARRAY, "com/intellij/usages/TextChunk");
-                visitInsn(Opcodes.DUP);
-                visitInsn(Opcodes.ICONST_0);
-                visitTypeInsn(Opcodes.NEW, "com/intellij/usages/TextChunk");
-                visitInsn(Opcodes.DUP);
-                visitTypeInsn(Opcodes.NEW, "com/intellij/openapi/editor/markup/TextAttributes");
-                visitInsn(Opcodes.DUP);
-                visitMethodInsn(Opcodes.INVOKESPECIAL, "com/intellij/openapi/editor/markup/TextAttributes", "<init>", "()V", false);
                 visitVarInsn(Opcodes.ALOAD, var);
                 addInterfaceCall();
-                visitMethodInsn(Opcodes.INVOKESPECIAL, "com/intellij/usages/TextChunk", "<init>", "(Lcom/intellij/openapi/editor/markup/TextAttributes;Ljava/lang/String;)V", false);
-                visitInsn(Opcodes.AASTORE);
                 visitVarInsn(Opcodes.ASTORE, var);
                 visitVarInsn(Opcodes.ALOAD, 0);
                 visitTypeInsn(Opcodes.NEW, "com/intellij/reference/SoftReference");

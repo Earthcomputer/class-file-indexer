@@ -9,7 +9,7 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
     private var foundCount = 0
     val locationName = location.substringBefore(':')
     val locationDesc = location.substringAfter(':')
-    private val locationIsMethod = locationDesc.contains("(")
+    val locationIsMethod = locationDesc.contains("(")
     private var constructorCallsThis = false
 
     fun findElement(clazz: PsiClass): T? {

@@ -1,5 +1,7 @@
 package net.earthcomputer.classfileindexer
 
+import com.intellij.usages.TextChunk
+
 interface IHasCustomDescription {
-    fun getCustomDescription(): String
+    fun getCustomDescription(): Array<TextChunk>
 }
