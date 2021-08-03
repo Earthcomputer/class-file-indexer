@@ -12,7 +12,7 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
     val locationIsMethod = locationDesc.contains("(")
     private var constructorCallsThis = false
 
-    fun findElement(clazz: PsiClass): T? {
+    open fun findElement(clazz: PsiClass): T? {
         foundElement = null
         foundCount = 0
         constructorCallsThis = false

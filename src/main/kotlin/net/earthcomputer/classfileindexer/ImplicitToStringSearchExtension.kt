@@ -17,39 +17,40 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
         runReadActionInSmartModeWithWritePriority(queryParameters.targetMethod.project, {
             queryParameters.targetMethod.isValid
         }) scope@{
+            val files = mutableMapOf<VirtualFile, MutableMap<String, Int>>()
             val declaringClass = queryParameters.targetMethod.containingClass ?: return@scope
-            process(declaringClass, queryParameters, consumer)
+            addFiles(declaringClass, queryParameters, files)
             for (inheritor in ClassInheritorsSearch.search(declaringClass)) {
-                process(inheritor, queryParameters, consumer)
+                addFiles(declaringClass, queryParameters, files)
+            }
+            val baseClassPtr = SmartPointerManager.createPointer(declaringClass)
+            var id = 0
+            for ((file, occurrences) in files) {
+                val psiFile = PsiManager.getInstance(declaringClass.project).findFile(file) as? PsiCompiledFile ?: continue
+                for ((location, count) in occurrences) {
+                    repeat(count) { i ->
+                        consumer.process(ImplicitToStringElement(id++, psiFile, ImplicitToStringLocator(baseClassPtr, location, i)))
+                    }
+                }
             }
         }
         return true
     }
 
-    private fun process(owningClass: PsiClass, queryParameters: ImplicitToStringSearch.SearchParameters, consumer: Processor<in PsiExpression>) {
+    private fun addFiles(
+        owningClass: PsiClass,
+        queryParameters: ImplicitToStringSearch.SearchParameters,
+        files: MutableMap<VirtualFile, MutableMap<String, Int>>) {
         val internalName = owningClass.internalName ?: return
         val scope = queryParameters.searchScope as? GlobalSearchScope
             ?: GlobalSearchScope.EMPTY_SCOPE.union(queryParameters.searchScope)
-        val files = mutableMapOf<VirtualFile, Map<String, Int>>()
         FileBasedIndex.getInstance().processValues(ClassFileIndexExtension.INDEX_ID, internalName, null, { file, value ->
             val v = value[ImplicitToStringKey.INSTANCE]
             if (v != null) {
-                files[file] = v
+                files.computeIfAbsent(file) { mutableMapOf() }.putAll(v)
             }
             true
         }, scope)
-        if (files.isEmpty()) {
-            return
-        }
-        var id = 0
-        for ((file, occurrences) in files) {
-            val psiFile = PsiManager.getInstance(owningClass.project).findFile(file) as? PsiCompiledFile ?: continue
-            for ((location, count) in occurrences) {
-                repeat(count) { i ->
-                    consumer.process(ImplicitToStringElement(id++, psiFile, ImplicitToStringLocator(internalName, location, i)))
-                }
-            }
-        }
     }
 
     class ImplicitToStringElement(

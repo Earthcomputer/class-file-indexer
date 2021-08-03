@@ -49,6 +49,7 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
             if (readFiles.isEmpty() && writeFiles.isEmpty()) {
                 return@scope
             }
+            val smartFieldPtr = SmartPointerManager.createPointer(element)
             var id = 0
             fun processFiles(files: Map<VirtualFile, MutableMap<String, Int>>, isWrite: Boolean) {
                 for ((file, occurrences) in files) {
@@ -56,7 +57,7 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
                     for ((location, count) in occurrences) {
                         repeat(count) { i ->
                             consumer.process(
-                                FieldRefElement(id++, psiFile, FieldLocator(element, isWrite, location, i), isWrite)
+                                FieldRefElement(id++, psiFile, FieldLocator(smartFieldPtr, isWrite, location, i), isWrite)
                                     .createReference(element)
                             )
                         }

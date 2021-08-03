@@ -45,6 +45,35 @@ val PsiClass.internalName: String?
         }.value
     }
 
+val PsiClass.descriptor: String?
+    get() = internalName?.let { "L$it;" }
+
+val PsiType.descriptor: String?
+    get() {
+        return when (this) {
+            is PsiPrimitiveType -> kind.binaryName
+            is PsiArrayType -> "[".repeat(arrayDimensions) + deepComponentType.descriptor
+            is PsiClassType -> resolve()?.descriptor
+                ?: ("L" + canonicalText.replace('.', '/') + ";") // fails inner classes, best we can do
+            else -> null
+        }
+    }
+
+val PsiField.descriptor: String?
+    get() = type.descriptor
+
+val PsiMethod.descriptor: String?
+    get() {
+        val descriptors = parameterList.parameters.map { it.type.descriptor }
+        if (descriptors.contains(null)) return null
+        val returnDesc = if (isConstructor) {
+            "V"
+        } else {
+            returnType?.descriptor ?: return null
+        }
+        return "(" + descriptors.joinToString("") + ")" + returnDesc
+    }
+
 inline fun <reified T: PsiElement> PsiElement.getParentOfType() = PsiTreeUtil.getParentOfType(this, T::class.java)
 
 fun Type.isPrimitive() = sort != Type.ARRAY && sort != Type.OBJECT && sort != Type.METHOD

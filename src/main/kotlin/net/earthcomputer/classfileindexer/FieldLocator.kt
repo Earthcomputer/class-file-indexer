@@ -1,20 +1,29 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiField
-import com.intellij.psi.PsiReferenceExpression
+import com.intellij.psi.*
 import com.intellij.psi.util.PsiUtil
 
 class FieldLocator(
-    private val field: PsiField,
+    private val fieldPtr: SmartPsiElementPointer<PsiField>,
     private val isWrite: Boolean,
     location: String,
     index: Int
 ) : DecompiledSourceElementLocator<PsiElement>(location, index) {
+    private var field: PsiField? = null
+
+    override fun findElement(clazz: PsiClass): PsiElement? {
+        field = fieldPtr.element ?: return null
+        try {
+            return super.findElement(clazz)
+        } finally {
+            field = null
+        }
+    }
+
     override fun visitReferenceExpression(expression: PsiReferenceExpression) {
         super.visitReferenceExpression(expression)
         if (PsiUtil.isAccessedForWriting(expression) == isWrite) {
-            if (expression.isReferenceTo(field)) {
+            if (expression.isReferenceTo(field!!)) {
                 matchElement(expression)
             }
         }
