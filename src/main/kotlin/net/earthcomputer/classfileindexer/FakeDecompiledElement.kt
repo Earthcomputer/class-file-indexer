@@ -29,6 +29,25 @@ open class FakeDecompiledElement<T: PsiElement>(
         private val USAGE_PREVIEW_PANEL: String = UsagePreviewPanel::class.java.name
     }
 
+    private fun getContainingClassName(): String? {
+        var containingClassName: String? = null
+        file.accept(object : JavaRecursiveElementVisitor() {
+            override fun visitAnonymousClass(aClass: PsiAnonymousClass) {
+                // TODO: inner classes
+            }
+
+            override fun visitClass(aClass: PsiClass) {
+                if (containingClassName != null) {
+                    // TODO: inner classes
+                } else {
+                    containingClassName = aClass.name
+                    super.visitClass(aClass)
+                }
+            }
+        })
+        return containingClassName
+    }
+
     fun createReference(target: PsiElement): PsiReference {
         val self = this
         val ref = PsiReferenceBase.createSelfReference(this, target)
@@ -121,22 +140,40 @@ open class FakeDecompiledElement<T: PsiElement>(
 
         val methodType = if (locator.locationIsMethod) Type.getMethodType(locator.locationDesc) else null
 
-        if (methodType != null) {
-            ret.addAll(makePresentableType(methodType.returnType))
-            ret += TextChunk(TextAttributes(), " ")
-        } else if (locator.locationDesc.isNotEmpty()) {
-            ret.addAll(makePresentableType(Type.getType(locator.locationDesc)))
-            ret += TextChunk(TextAttributes(), " ")
+        when (locator.locationName) {
+            "" -> {
+                ret += TextChunk(TextAttributes(), "Class scope")
+            }
+            "<clinit>" -> {
+                ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.KEYWORD), "static")
+                ret += TextChunk(TextAttributes(), " ")
+                ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.BRACES), "{}")
+            }
+            "<init>" -> {
+                ret += TextChunk(colorScheme.getAttributes(
+                    JavaHighlightingColors.CONSTRUCTOR_DECLARATION_ATTRIBUTES),
+                    getContainingClassName() ?: "constructor"
+                )
+            }
+            else -> {
+                if (methodType != null) {
+                    ret.addAll(makePresentableType(methodType.returnType))
+                    ret += TextChunk(TextAttributes(), " ")
+                } else if (locator.locationDesc.isNotEmpty()) {
+                    ret.addAll(makePresentableType(Type.getType(locator.locationDesc)))
+                    ret += TextChunk(TextAttributes(), " ")
+                }
+
+                val nameAttr = if (methodType != null) {
+                    colorScheme.getAttributes(JavaHighlightingColors.METHOD_DECLARATION_ATTRIBUTES)
+                } else {
+                    colorScheme.getAttributes(JavaHighlightingColors.INSTANCE_FIELD_ATTRIBUTES)
+                }
+                ret += TextChunk(nameAttr, locator.locationName)
+            }
         }
 
-        val nameAttr = if (methodType != null) {
-            colorScheme.getAttributes(JavaHighlightingColors.METHOD_DECLARATION_ATTRIBUTES)
-        } else {
-            colorScheme.getAttributes(JavaHighlightingColors.INSTANCE_FIELD_ATTRIBUTES)
-        }
-        ret += TextChunk(nameAttr, locator.locationName)
-
-        if (methodType != null) {
+        if (methodType != null && locator.locationName != "<clinit>") {
             ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.PARENTHESES), "(")
             val argTypes = methodType.argumentTypes
             argTypes.asSequence().map {

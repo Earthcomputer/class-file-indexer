@@ -62,11 +62,11 @@ class IndexerMethodVisitor(private val cv: IndexerClassVisitor) : MethodVisitor(
                 val invokedMethod = when (bootstrapMethodHandle.name) {
                     "metafactory" -> {
                         if (bootstrapMethodArguments.size < 3) return
-                        bootstrapMethodArguments[2] as? Handle ?: return
+                        bootstrapMethodArguments[1] as? Handle ?: return
                     }
                     "altMetafactory" -> {
                         if (bootstrapMethodArguments.size < 2) return
-                        val extraArgs = bootstrapMethodArguments[1] as? Array<*> ?: return
+                        val extraArgs = bootstrapMethodArguments[0] as? Array<*> ?: return
                         if (extraArgs.size < 2) return
                         extraArgs[1] as? Handle ?: return
                     }

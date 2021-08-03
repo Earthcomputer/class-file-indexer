@@ -282,28 +282,28 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     }
 
     private fun propagateLambdaLocations() {
+        val referencedByLambda = lambdaLocationMappings.entries.asSequence()
+            .flatMap { (k, vs) -> vs.asSequence().map { v -> java.util.AbstractMap.SimpleEntry(k, v.key) } }
+            .groupByTo(mutableMapOf(), { it.value }) { it.key }
         var changed = true
         while (lambdaLocationMappings.isNotEmpty() && changed) {
             changed = false
             val lambdaLocItr = lambdaLocationMappings.iterator()
             while (lambdaLocItr.hasNext()) {
                 val (lambdaLoc, targets) = lambdaLocItr.next()
-                val targetItr = targets.iterator()
-                while (targetItr.hasNext()) {
-                    val (targetLoc, countOfLambda) = targetItr.next()
-                    if (!lambdaLocationMappings.containsKey(targetLoc)) {
-                        changed = true
-                        targetItr.remove()
-                        for (keys in index.values) {
-                            for (locations in keys.values) {
-                                val countInLambda = locations.remove(lambdaLoc) ?: continue
-                                locations.merge(targetLoc, countOfLambda * countInLambda, Integer::sum)
-                            }
+                if (referencedByLambda[lambdaLoc]?.isNotEmpty() == true) {
+                    continue // something still needs to be inlined into this lambda, can't inline this one yet
+                }
+                changed = true
+                lambdaLocItr.remove()
+                for ((targetLoc, countOfLambda) in targets) {
+                    referencedByLambda[targetLoc]?.remove(lambdaLoc)
+                    for (keys in index.values) {
+                        for (locations in keys.values) {
+                            val countInLambda = locations.remove(lambdaLoc) ?: continue
+                            locations.merge(targetLoc, countOfLambda * countInLambda, Integer::sum)
                         }
                     }
-                }
-                if (targets.isEmpty()) {
-                    lambdaLocItr.remove()
                 }
             }
         }
