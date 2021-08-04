@@ -5,23 +5,23 @@ import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.*
 
 class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     lateinit var className: String
-    val index = mutableMapOf<String, MutableMap<BinaryIndexKey, MutableMap<String, Int>>>()
+    val index = SmartMap<String, MutableMap<BinaryIndexKey, MutableMap<String, Int>>>()
     val locationStack = java.util.ArrayDeque<String>()
 
     private val lambdaLocationMappings = mutableMapOf<String, MutableMap<String, Int>>()
     private val syntheticMethods = mutableSetOf<String>()
 
     fun addRef(name: String, key: BinaryIndexKey) {
-        index.computeIfAbsent(name) { mutableMapOf() }.computeIfAbsent(key) { mutableMapOf() }.merge(locationStack.peek(), 1, Integer::sum)
+        index.computeIfAbsent(name.intern()) { SmartMap() }.computeIfAbsent(key) { SmartMap() }.merge(locationStack.peek(), 1, Integer::sum)
     }
     fun addClassRef(name: String) {
         addRef(name, ClassIndexKey.INSTANCE)
     }
     fun addFieldRef(owner: String, name: String, isWrite: Boolean) {
-        addRef(name, FieldIndexKey(owner, isWrite))
+        addRef(name, FieldIndexKey(owner.intern(), isWrite))
     }
     fun addMethodRef(owner: String, name: String, desc: String) {
-        addRef(name, MethodIndexKey(owner, desc))
+        addRef(name, MethodIndexKey(owner.intern(), desc.intern()))
     }
 
     fun addLambdaLocationMapping(lambdaLocation: String) {
@@ -198,7 +198,7 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     }
     private fun readIdentifier(sig: String, i: Int): Pair<String, Int> {
         var endI = i
-        while (endI < sig.length && !ILLEGAL_SIG_CHARS.contains(sig[i])) {
+        while (endI < sig.length && !ILLEGAL_SIG_CHARS.contains(sig[endI])) {
             endI++
         }
         return sig.substring(i, endI) to endI

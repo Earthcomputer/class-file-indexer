@@ -29,7 +29,7 @@ class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexK
             out.writeUTF(value)
         }
 
-        override fun read(input: DataInput) = input.readUTF()
+        override fun read(input: DataInput) = input.readUTF().intern()
     }
 
     override fun getValueExternalizer() = object : DataExternalizer<Map<BinaryIndexKey, Map<String, Int>>> {
@@ -59,19 +59,19 @@ class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexK
         }
 
         override fun read(input: DataInput): Map<BinaryIndexKey, Map<String, Int>> {
-            val result = mutableMapOf<BinaryIndexKey, MutableMap<String, Int>>()
+            val result = SmartMap<BinaryIndexKey, MutableMap<String, Int>>()
             repeat(DataInputOutputUtil.readINT(input)) {
                 val key = when (DataInputOutputUtil.readINT(input)) {
                     ClassIndexKey.ID -> ClassIndexKey.INSTANCE
-                    FieldIndexKey.ID -> FieldIndexKey(input.readUTF(), input.readBoolean())
-                    MethodIndexKey.ID -> MethodIndexKey(input.readUTF(), input.readUTF())
+                    FieldIndexKey.ID -> FieldIndexKey(input.readUTF().intern(), input.readBoolean())
+                    MethodIndexKey.ID -> MethodIndexKey(input.readUTF().intern(), input.readUTF().intern())
                     StringConstantKey.ID -> StringConstantKey.INSTANCE
                     ImplicitToStringKey.ID -> ImplicitToStringKey.INSTANCE
                     else -> throw IOException("Unknown key type")
                 }
-                val counts = mutableMapOf<String, Int>()
+                val counts = SmartMap<String, Int>()
                 repeat(DataInputOutputUtil.readINT(input)) {
-                    val location = input.readUTF()
+                    val location = input.readUTF().intern()
                     val count = DataInputOutputUtil.readINT(input)
                     counts[location] = count
                 }
