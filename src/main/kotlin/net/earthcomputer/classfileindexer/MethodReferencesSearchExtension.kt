@@ -77,12 +77,15 @@ class MethodReferencesSearchExtension : QueryExecutor<PsiReference, MethodRefere
             val methodPtr = SmartPointerManager.createPointer(method)
             var id = 0
             for ((file, occurrences) in files) {
-                val psiFile = PsiManager.getInstance(queryParameters.project).findFile(file) as? PsiCompiledFile ?: continue
+                val psiFile = findCompiledFile(queryParameters.project, file) ?: continue
                 for ((location, count) in occurrences) {
                     repeat(count) { i ->
                         consumer.process(
-                            MethodRefElement(id++, psiFile, MethodLocator(methodPtr, queryParameters.isStrictSignatureSearch, location, i))
-                                .createReference(method)
+                            MethodRefElement(
+                                id++,
+                                psiFile,
+                                MethodLocator(methodPtr, queryParameters.isStrictSignatureSearch, file.nameWithoutExtension, location, i)
+                            ).createReference(method)
                         )
                     }
                 }

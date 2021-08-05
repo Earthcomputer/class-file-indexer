@@ -50,11 +50,11 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
             var id = 0
             fun processFiles(files: Map<VirtualFile, Map<String, Int>>, isWrite: Boolean) {
                 for ((file, occurrences) in files) {
-                    val psiFile = PsiManager.getInstance(queryParameters.project).findFile(file) as? PsiCompiledFile ?: continue
+                    val psiFile = findCompiledFile(queryParameters.project, file) ?: continue
                     for ((location, count) in occurrences) {
                         repeat(count) { i ->
                             consumer.process(
-                                FieldRefElement(id++, psiFile, FieldLocator(smartFieldPtr, isWrite, location, i), isWrite)
+                                FieldRefElement(id++, psiFile, FieldLocator(smartFieldPtr, isWrite, file.nameWithoutExtension, location, i), isWrite)
                                     .createReference(element)
                             )
                         }
@@ -75,10 +75,10 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
             }
             var id = 0
             for ((file, occurrences) in files) {
-                val psiFile = PsiManager.getInstance(queryParameters.project).findFile(file) as? PsiCompiledFile ?: continue
+                val psiFile = findCompiledFile(queryParameters.project, file) ?: continue
                 for ((location, count) in occurrences) {
                     repeat(count) { i ->
-                        consumer.process(ClassRefElement(id++, psiFile, ClassLocator(internalName, location, i)).createReference(element))
+                        consumer.process(ClassRefElement(id++, psiFile, ClassLocator(internalName, file.nameWithoutExtension, location, i)).createReference(element))
                     }
                 }
             }

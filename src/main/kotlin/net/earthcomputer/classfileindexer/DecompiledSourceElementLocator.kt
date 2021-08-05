@@ -4,13 +4,22 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 
-open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val index: Int) : JavaRecursiveElementVisitor() {
+open class DecompiledSourceElementLocator<T: PsiElement>(
+    val className: String,
+    private val location: String,
+    val index: Int
+) : JavaRecursiveElementVisitor() {
+    private class ClassScope(val className: String, var anonymousClassIndex: Int = 0)
+
+    private val classScopeStack = java.util.ArrayDeque<ClassScope>()
     private var foundElement: T? = null
     private var foundCount = 0
     val locationName = location.substringBefore(':')
     val locationDesc = location.substringAfter(':')
     val locationIsMethod = locationDesc.contains("(")
     private var constructorCallsThis = false
+
+    override fun toString() = "${javaClass.simpleName}($className, $location, $index)"
 
     open fun findElement(clazz: PsiClass): T? {
         foundElement = null
@@ -26,6 +35,12 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
         }
     }
 
+    private fun isInClassLocation(): Boolean {
+        return classScopeStack.descendingIterator().asSequence()
+            .joinToString("\$") { it.className } == className
+
+    }
+
     private fun isInLocation(element: PsiElement): Boolean {
         val parent = PsiTreeUtil.getParentOfType(
             element,
@@ -35,6 +50,9 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
             PsiClass::class.java,
             PsiClassInitializer::class.java
         ) ?: return false
+        if (!isInClassLocation()) {
+            return false
+        }
         when (parent) {
             is PsiMethod -> {
                 if (!locationIsMethod) {
@@ -99,14 +117,18 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
     }
 
     override fun visitAnonymousClass(clazz: PsiAnonymousClass) {
-        // TODO: handle anonymous classes properly
+        classScopeStack.push(ClassScope("${++classScopeStack.peek().anonymousClassIndex}"))
+        try {
+            super.visitAnonymousClass(clazz)
+        } finally {
+            classScopeStack.pop()
+        }
     }
 
     override fun visitClass(clazz: PsiClass) {
-        if (clazz.getParentOfType<PsiClass>() != null) {
-            // TODO: handle inner classes properly
-        } else {
-            if (locationIsMethod && locationName == "<init>") {
+        classScopeStack.push(ClassScope(clazz.name ?: return))
+        try {
+            if (locationIsMethod && locationName == "<init>" && isInClassLocation()) {
                 for (constructor in clazz.constructors) {
                     if (isDescriptorOfMethodType(locationDesc, constructor)) {
                         val firstStatement = constructor.body?.statements?.getOrNull(0) ?: break
@@ -121,6 +143,8 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
                 }
             }
             super.visitClass(clazz)
+        } finally {
+            classScopeStack.pop()
         }
     }
 }

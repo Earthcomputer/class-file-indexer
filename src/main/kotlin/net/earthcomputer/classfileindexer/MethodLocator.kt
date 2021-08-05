@@ -7,9 +7,10 @@ import com.intellij.psi.util.MethodSignatureUtil
 class MethodLocator(
     private val methodPtr: SmartPsiElementPointer<PsiMethod>,
     private val strict: Boolean,
+    className: String,
     location: String,
     index: Int
-) : DecompiledSourceElementLocator<PsiElement>(location, index) {
+) : DecompiledSourceElementLocator<PsiElement>(className, location, index) {
     private var method: PsiMethod? = null
 
     override fun findElement(clazz: PsiClass): PsiElement? {
@@ -34,7 +35,7 @@ class MethodLocator(
         }
 
         return if (strict) {
-            MethodSignatureUtil.isSuperMethod(method, theMethod)
+            method == theMethod || MethodSignatureUtil.isSuperMethod(method, theMethod)
         } else {
             if (method.name != theMethod.name) {
                 return false

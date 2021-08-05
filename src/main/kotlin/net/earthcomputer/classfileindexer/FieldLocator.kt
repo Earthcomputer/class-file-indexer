@@ -6,9 +6,10 @@ import com.intellij.psi.util.PsiUtil
 class FieldLocator(
     private val fieldPtr: SmartPsiElementPointer<PsiField>,
     private val isWrite: Boolean,
+    className: String,
     location: String,
     index: Int
-) : DecompiledSourceElementLocator<PsiElement>(location, index) {
+) : DecompiledSourceElementLocator<PsiElement>(className, location, index) {
     private var field: PsiField? = null
 
     override fun findElement(clazz: PsiClass): PsiElement? {

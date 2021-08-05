@@ -24,10 +24,16 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
             val baseClassPtr = SmartPointerManager.createPointer(declaringClass)
             var id = 0
             for ((file, occurrences) in files) {
-                val psiFile = PsiManager.getInstance(declaringClass.project).findFile(file) as? PsiCompiledFile ?: continue
+                val psiFile = findCompiledFile(declaringClass.project, file) ?: continue
                 for ((location, count) in occurrences) {
                     repeat(count) { i ->
-                        consumer.process(ImplicitToStringElement(id++, psiFile, ImplicitToStringLocator(baseClassPtr, location, i)))
+                        consumer.process(
+                            ImplicitToStringElement(
+                                id++,
+                                psiFile,
+                                ImplicitToStringLocator(baseClassPtr, file.nameWithoutExtension, location, i)
+                            )
+                        )
                     }
                 }
             }

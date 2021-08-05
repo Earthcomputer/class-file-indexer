@@ -6,9 +6,10 @@ import com.intellij.psi.PsiTypeElement
 
 class ClassLocator(
     internalName: String,
+    className: String,
     location: String,
     index: Int
-) : DecompiledSourceElementLocator<PsiElement>(location, index) {
+) : DecompiledSourceElementLocator<PsiElement>(className, location, index) {
     private val descriptor = "L$internalName;"
 
     override fun visitTypeElement(typeElement: PsiTypeElement) {

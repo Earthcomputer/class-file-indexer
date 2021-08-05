@@ -5,9 +5,10 @@ import com.intellij.psi.util.InheritanceUtil
 
 class ImplicitToStringLocator(
     private val baseClassPtr: SmartPsiElementPointer<PsiClass>,
+    className: String,
     location: String,
     index: Int
-): DecompiledSourceElementLocator<PsiExpression>(location, index) {
+): DecompiledSourceElementLocator<PsiExpression>(className, location, index) {
     private var baseClass: PsiClass? = null
 
     override fun findElement(clazz: PsiClass): PsiExpression? {

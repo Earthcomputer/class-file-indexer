@@ -2,6 +2,7 @@ package net.earthcomputer.classfileindexer
 
 import com.intellij.ide.highlighter.JavaHighlightingColors
 import com.intellij.ide.util.EditorHelper
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.TextRange
 import com.intellij.pom.Navigatable
@@ -24,28 +25,10 @@ open class FakeDecompiledElement<T: PsiElement>(
 ) : FakePsiElement(), Navigatable, IHasNavigationOffset, IHasCustomDescription {
 
     companion object {
+        private val LOGGER = Logger.getInstance(FakeDecompiledElement::class.java)
         private val USAGE_VIEW_UTIL: String = UsageViewUtil::class.java.name
         private val USAGE_INFO_2_UTIL_ADAPTER: String = UsageInfo2UsageAdapter::class.java.name
         private val USAGE_PREVIEW_PANEL: String = UsagePreviewPanel::class.java.name
-    }
-
-    private fun getContainingClassName(): String? {
-        var containingClassName: String? = null
-        file.accept(object : JavaRecursiveElementVisitor() {
-            override fun visitAnonymousClass(aClass: PsiAnonymousClass) {
-                // TODO: inner classes
-            }
-
-            override fun visitClass(aClass: PsiClass) {
-                if (containingClassName != null) {
-                    // TODO: inner classes
-                } else {
-                    containingClassName = aClass.name
-                    super.visitClass(aClass)
-                }
-            }
-        })
-        return containingClassName
     }
 
     fun createReference(target: PsiElement): PsiReference {
@@ -152,7 +135,7 @@ open class FakeDecompiledElement<T: PsiElement>(
             "<init>" -> {
                 ret += TextChunk(colorScheme.getAttributes(
                     JavaHighlightingColors.CONSTRUCTOR_DECLARATION_ATTRIBUTES),
-                    getContainingClassName() ?: "constructor"
+                    locator.className.replace('$', '.')
                 )
             }
             else -> {
@@ -199,7 +182,15 @@ open class FakeDecompiledElement<T: PsiElement>(
     }
 
     private fun findElement(): T? {
-        val clazz = (file.decompiledPsiFile as? PsiJavaFile)?.classes?.firstOrNull() ?: return null
-        return locator.findElement(clazz)
+        val clazz = (file.decompiledPsiFile as? PsiJavaFile)?.classes?.firstOrNull()
+        if (clazz == null) {
+            LOGGER.warn("Could not find class inside PsiCompiledFile")
+            return null
+        }
+        val foundElement = locator.findElement(clazz)
+        if (foundElement == null) {
+            LOGGER.warn("Could not locate element at $locator")
+        }
+        return foundElement
     }
 }

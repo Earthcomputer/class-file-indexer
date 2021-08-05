@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.*
@@ -147,6 +148,16 @@ fun getTypeFromDescriptor(project: Project, scope: GlobalSearchScope, desc: Type
         }
         else -> null
     }
+}
+
+fun findCompiledFile(project: Project, file: VirtualFile): PsiCompiledFile? {
+    val className = file.nameWithoutExtension
+    val actualFile = if (className.contains("\$")) {
+        file.parent?.findChild("${className.substringBefore("\$")}.class") ?: file
+    } else {
+        file
+    }
+    return PsiManager.getInstance(project).findFile(actualFile) as? PsiCompiledFile
 }
 
 fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: () -> Boolean, action: () -> Unit): Boolean {
