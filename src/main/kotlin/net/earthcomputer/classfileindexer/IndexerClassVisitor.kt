@@ -23,6 +23,10 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     fun addMethodRef(owner: String, name: String, desc: String) {
         addRef(name, MethodIndexKey(owner.intern(), desc.intern()))
     }
+    fun addDelegateRef(name: String, key: BinaryIndexKey) {
+        index[name]?.get(key)?.remove(locationStack.peek())
+        addRef(name, DelegateIndexKey(key))
+    }
 
     fun addLambdaLocationMapping(lambdaLocation: String) {
         lambdaLocationMappings.computeIfAbsent(lambdaLocation) { mutableMapOf() }.merge(locationStack.peek(), 1, Integer::sum)
@@ -61,7 +65,7 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
             }
             is ConstantDynamic -> {
                 val bootstrapMethodArguments = (0 until cst.bootstrapMethodArgumentCount).map { cst.getBootstrapMethodArgument(it) }.toTypedArray()
-                IndexerMethodVisitor(this).visitInvokeDynamicInsn(cst.name, cst.descriptor, cst.bootstrapMethod, *bootstrapMethodArguments)
+                IndexerMethodVisitor(this, 0, "()V").visitInvokeDynamicInsn(cst.name, cst.descriptor, cst.bootstrapMethod, *bootstrapMethodArguments)
             }
             else -> {
                 if (cst.javaClass.isArray) {
@@ -273,7 +277,7 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
         addTypeDescriptor(desc.returnType.descriptor)
         signature?.let { addMethodTypeSignature(it) }
         exceptions?.forEach { addClassRef(it) }
-        return IndexerMethodVisitor(this)
+        return IndexerMethodVisitor(this, access, descriptor)
     }
 
     override fun visitEnd() {

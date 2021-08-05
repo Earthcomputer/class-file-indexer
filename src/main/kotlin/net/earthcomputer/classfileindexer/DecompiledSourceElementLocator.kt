@@ -55,8 +55,8 @@ open class DecompiledSourceElementLocator<T: PsiElement>(location: String, val i
                 val initializer = parent.initializer
                 val enumConstantArgs = (parent as? PsiEnumConstant)?.argumentList
                 val isInInitializer = !PsiUtil.isCompileTimeConstant(parent)
-                        && ((initializer != null && PsiTreeUtil.isAncestor(element, initializer, false))
-                            || (enumConstantArgs != null && PsiTreeUtil.isAncestor(element, enumConstantArgs, false)))
+                        && ((initializer != null && PsiTreeUtil.isAncestor(initializer, element, false))
+                            || (enumConstantArgs != null && PsiTreeUtil.isAncestor(enumConstantArgs, element, false)))
                 if (isInInitializer) {
                     if (!locationIsMethod) {
                         return false

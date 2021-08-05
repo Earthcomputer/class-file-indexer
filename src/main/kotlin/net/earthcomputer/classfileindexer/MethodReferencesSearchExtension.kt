@@ -1,15 +1,12 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.MethodReferencesSearch
 import com.intellij.psi.util.MethodSignatureUtil
 import com.intellij.psi.util.TypeConversionUtil
 import com.intellij.util.Processor
 import com.intellij.util.QueryExecutor
-import com.intellij.util.indexing.FileBasedIndex
 
 class MethodReferencesSearchExtension : QueryExecutor<PsiReference, MethodReferencesSearch.SearchParameters> {
     override fun execute(
@@ -64,24 +61,16 @@ class MethodReferencesSearchExtension : QueryExecutor<PsiReference, MethodRefere
                     }
                 }
             }
-            val scope = queryParameters.effectiveSearchScope as? GlobalSearchScope
-                ?: GlobalSearchScope.EMPTY_SCOPE.union(queryParameters.effectiveSearchScope)
             val methodBinaryName = if (method.isConstructor) {
                 "<init>"
             } else {
                 method.name
             }
-            val files = mutableMapOf<VirtualFile, MutableMap<String, Int>>()
-            FileBasedIndex.getInstance().processValues(ClassFileIndexExtension.INDEX_ID, methodBinaryName, null, { file, value ->
-                for ((key, v) in value) {
-                    if (key is MethodIndexKey && allowedOwners.contains(key.owner)) {
-                        if (!queryParameters.isStrictSignatureSearch || allowedDescs.contains(key.desc)) {
-                            files.computeIfAbsent(file) { mutableMapOf() }.putAll(v)
-                        }
-                    }
-                }
-                true
-            }, scope)
+            val files = ClassFileIndex.search(methodBinaryName, { key ->
+                key is MethodIndexKey
+                        && allowedOwners.contains(key.owner)
+                        && (!queryParameters.isStrictSignatureSearch || allowedDescs.contains(key.desc))
+            }, queryParameters.effectiveSearchScope)
             if (files.isEmpty()) {
                 return@scope
             }

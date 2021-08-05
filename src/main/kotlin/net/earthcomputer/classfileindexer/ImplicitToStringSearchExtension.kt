@@ -2,12 +2,10 @@ package net.earthcomputer.classfileindexer
 
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.ImplicitToStringSearch
 import com.intellij.util.Processor
 import com.intellij.util.QueryExecutor
-import com.intellij.util.indexing.FileBasedIndex
 
 class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToStringSearch.SearchParameters> {
     override fun execute(
@@ -42,15 +40,13 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
         queryParameters: ImplicitToStringSearch.SearchParameters,
         files: MutableMap<VirtualFile, MutableMap<String, Int>>) {
         val internalName = owningClass.internalName ?: return
-        val scope = queryParameters.searchScope as? GlobalSearchScope
-            ?: GlobalSearchScope.EMPTY_SCOPE.union(queryParameters.searchScope)
-        FileBasedIndex.getInstance().processValues(ClassFileIndexExtension.INDEX_ID, internalName, null, { file, value ->
-            val v = value[ImplicitToStringKey.INSTANCE]
-            if (v != null) {
-                files.computeIfAbsent(file) { mutableMapOf() }.putAll(v)
+        val results = ClassFileIndex.search(internalName, ImplicitToStringKey.INSTANCE, queryParameters.searchScope)
+        for ((file, sourceMap) in results) {
+            val targetMap = files.computeIfAbsent(file) { mutableMapOf() }
+            for ((k, v) in sourceMap) {
+                targetMap.merge(k, v, Integer::sum)
             }
-            true
-        }, scope)
+        }
     }
 
     class ImplicitToStringElement(

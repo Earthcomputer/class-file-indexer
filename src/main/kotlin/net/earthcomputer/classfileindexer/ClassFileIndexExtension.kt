@@ -8,7 +8,6 @@ import com.intellij.util.io.KeyDescriptor
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassReader
 import java.io.DataInput
 import java.io.DataOutput
-import java.io.IOException
 
 class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexKey, Map<String, Int>>>() {
     override fun getName() = INDEX_ID
@@ -36,20 +35,7 @@ class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexK
         override fun save(out: DataOutput, value: Map<BinaryIndexKey, Map<String, Int>>) {
             DataInputOutputUtil.writeINT(out, value.size)
             for ((key, counts) in value) {
-                DataInputOutputUtil.writeINT(out, key.id)
-                when (key) {
-                    is FieldIndexKey -> {
-                        out.writeUTF(key.owner)
-                        out.writeBoolean(key.isWrite)
-                    }
-                    is MethodIndexKey -> {
-                        out.writeUTF(key.owner)
-                        out.writeUTF(key.desc)
-                    }
-                    else -> {
-                        // no extra data
-                    }
-                }
+                key.write(out)
                 DataInputOutputUtil.writeINT(out, counts.size)
                 for ((location, count) in counts) {
                     out.writeUTF(location)
@@ -61,14 +47,7 @@ class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexK
         override fun read(input: DataInput): Map<BinaryIndexKey, Map<String, Int>> {
             val result = SmartMap<BinaryIndexKey, MutableMap<String, Int>>()
             repeat(DataInputOutputUtil.readINT(input)) {
-                val key = when (DataInputOutputUtil.readINT(input)) {
-                    ClassIndexKey.ID -> ClassIndexKey.INSTANCE
-                    FieldIndexKey.ID -> FieldIndexKey(input.readUTF().intern(), input.readBoolean())
-                    MethodIndexKey.ID -> MethodIndexKey(input.readUTF().intern(), input.readUTF().intern())
-                    StringConstantKey.ID -> StringConstantKey.INSTANCE
-                    ImplicitToStringKey.ID -> ImplicitToStringKey.INSTANCE
-                    else -> throw IOException("Unknown key type")
-                }
+                val key = BinaryIndexKey.read(input)
                 val counts = SmartMap<String, Int>()
                 repeat(DataInputOutputUtil.readINT(input)) {
                     val location = input.readUTF().intern()
