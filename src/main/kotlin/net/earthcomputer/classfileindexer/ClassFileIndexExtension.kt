@@ -108,6 +108,7 @@ class ClassFileIndexExtension :
             ?: throw IOException("Invalid enumerated string")
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun writeString(output: DataOutput, value: String) {
         try {
             DataInputOutputUtil.writeINT(output, enumerator.enumerate(value))
