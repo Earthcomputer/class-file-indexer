@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.util.indexing.CustomImplementationFileBasedIndexExtension
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
+import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
@@ -76,7 +77,7 @@ class ClassFileIndexExtension :
         }
     }
 
-    override fun getVersion() = 2
+    override fun getVersion() = 3
 
     override fun getInputFilter() = DefaultFileTypeSpecificInputFilter(JavaClassFileType.INSTANCE)
 
@@ -96,13 +97,25 @@ class ClassFileIndexExtension :
         return PersistentStringEnumerator(enumeratorPath, ENUMERATOR_INITIAL_SIZE, true, StorageLockContext(true))
     }
 
+    private fun recreateEnumerator() {
+        IOUtil.closeSafe(LOGGER, enumerator)
+        IOUtil.deleteAllFilesStartingWith(enumeratorPath.toFile())
+        enumerator = createEnumerator()
+    }
+
     private fun readString(input: DataInput): String {
         return enumerator.valueOf(DataInputOutputUtil.readINT(input))?.intern()
             ?: throw IOException("Invalid enumerated string")
     }
 
     private fun writeString(output: DataOutput, value: String) {
-        DataInputOutputUtil.writeINT(output, enumerator.enumerate(value))
+        try {
+            DataInputOutputUtil.writeINT(output, enumerator.enumerate(value))
+        } catch (e: Throwable) {
+            recreateEnumerator()
+            FileBasedIndex.getInstance().requestRebuild(INDEX_ID, e)
+            throw e
+        }
     }
 
     override fun createIndexImplementation(
@@ -111,9 +124,7 @@ class ClassFileIndexExtension :
     ) = object : VfsAwareMapReduceIndex<String, Map<BinaryIndexKey, Map<String, Int>>>(extension, storage) {
         override fun doClear() {
             super.doClear()
-            IOUtil.closeSafe(LOGGER, enumerator)
-            IOUtil.deleteAllFilesStartingWith(enumeratorPath.toFile())
-            enumerator = createEnumerator()
+            recreateEnumerator()
         }
 
         override fun doFlush() {
