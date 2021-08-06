@@ -94,7 +94,7 @@ class ClassFileIndexExtension :
 //    }
 
     private fun readString(input: DataInput): String {
-        return input.readUTF()
+        return input.readUTF().intern()
 //        return enumerator.valueOf(DataInputOutputUtil.readINT(input))?.intern()
 //            ?: throw IOException("Invalid enumerated string")
     }

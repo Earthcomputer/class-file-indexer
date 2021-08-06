@@ -1,9 +1,8 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.ide.AppLifecycleListener
+import com.intellij.ide.ApplicationInitializedListener
 import com.intellij.ide.plugins.PluginManager
 import com.intellij.openapi.extensions.PluginId
-import com.intellij.openapi.project.Project
 import com.intellij.util.io.isFile
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.io.File
@@ -16,12 +15,13 @@ import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
-class MyAppLifecycleListener : AppLifecycleListener {
+@Suppress("UnstableApiUsage") // there's no other way
+class AgentInitializedListener : ApplicationInitializedListener {
     companion object {
         const val AGENT_CLASS_NAME = "net.earthcomputer.classfileindexer.MyAgent"
     }
 
-    override fun appStarting(projectFromCommandLine: Project?) {
+    override fun componentsInitialized() {
         val jarFile = File.createTempFile("agent", ".jar")
         val jarPath = jarFile.toPath()
 
