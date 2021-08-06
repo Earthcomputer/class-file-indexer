@@ -1,4 +1,4 @@
-<idea-plugin>
+<idea-plugin require-restart="true">
     <id>net.earthcomputer.classfileindexer</id>
     <name>Class File Indexer</name>
     <vendor>Earthcomputer</vendor>
