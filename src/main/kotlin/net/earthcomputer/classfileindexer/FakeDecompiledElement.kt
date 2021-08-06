@@ -6,7 +6,11 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.TextRange
 import com.intellij.pom.Navigatable
-import com.intellij.psi.*
+import com.intellij.psi.PsiCompiledFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiJavaFile
+import com.intellij.psi.PsiReference
+import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.impl.FakePsiElement
 import com.intellij.usageView.UsageTreeColors
 import com.intellij.usageView.UsageTreeColorsScheme
@@ -17,7 +21,7 @@ import com.intellij.usages.impl.UsagePreviewPanel
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
 import java.util.stream.Collectors
 
-open class FakeDecompiledElement<T: PsiElement>(
+open class FakeDecompiledElement<T : PsiElement>(
     private val id: Int,
     protected val file: PsiCompiledFile,
     private val myParent: PsiElement,
@@ -68,13 +72,17 @@ open class FakeDecompiledElement<T: PsiElement>(
         val reasonClass = reason.className
         val methodName = reason.methodName
         val isHighlightMethod = reasonClass == USAGE_PREVIEW_PANEL && methodName == "highlight"
-        return if ((reasonClass == USAGE_VIEW_UTIL && methodName == "navigateTo")
-            || (reasonClass == USAGE_INFO_2_UTIL_ADAPTER && methodName == "getDescriptor")
-            || isHighlightMethod) {
+        return if ((reasonClass == USAGE_VIEW_UTIL && methodName == "navigateTo") ||
+            (reasonClass == USAGE_INFO_2_UTIL_ADAPTER && methodName == "getDescriptor") ||
+            isHighlightMethod
+        ) {
             val element = findElement() ?: return TextRange(id * 2, id * 2 + 1)
             val range = element.textRange ?: return TextRange(id * 2, id * 2 + 1)
             val secondFrame = stackFrames.getOrNull(1) ?: return TextRange(id * 2, id * 2 + 1)
-            if (shiftForCursor || isHighlightMethod || (secondFrame.className == USAGE_INFO_2_UTIL_ADAPTER && secondFrame.methodName == "openTextEditor")) {
+            if (shiftForCursor ||
+                isHighlightMethod ||
+                (secondFrame.className == USAGE_INFO_2_UTIL_ADAPTER && secondFrame.methodName == "openTextEditor")
+            ) {
                 range.shiftRight(element.textOffset - range.startOffset)
             } else {
                 range
@@ -133,8 +141,10 @@ open class FakeDecompiledElement<T: PsiElement>(
                 ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.BRACES), "{}")
             }
             "<init>" -> {
-                ret += TextChunk(colorScheme.getAttributes(
-                    JavaHighlightingColors.CONSTRUCTOR_DECLARATION_ATTRIBUTES),
+                ret += TextChunk(
+                    colorScheme.getAttributes(
+                        JavaHighlightingColors.CONSTRUCTOR_DECLARATION_ATTRIBUTES
+                    ),
                     locator.className.replace('$', '.')
                 )
             }
@@ -174,7 +184,7 @@ open class FakeDecompiledElement<T: PsiElement>(
                     )
                 }
             }.flatMap { it.asSequence() }
-            .forEach { ret += it }
+                .forEach { ret += it }
             ret += TextChunk(colorScheme.getAttributes(JavaHighlightingColors.PARENTHESES), ")")
         }
 

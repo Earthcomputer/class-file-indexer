@@ -7,26 +7,30 @@ import com.intellij.psi.search.SearchScope
 import com.intellij.util.indexing.FileBasedIndex
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassReader
 
-class ClassFileIndex {
+class ClassFileIndex private constructor() {
     companion object {
         fun search(name: String, key: BinaryIndexKey, scope: SearchScope): Map<VirtualFile, Map<String, Int>> {
             val globalScope = asGlobal(scope)
             val files = mutableMapOf<VirtualFile, MutableMap<String, Int>>()
             val locationsToSearchFurther = mutableSetOf<Pair<String, String>>()
-            FileBasedIndex.getInstance().processValues(ClassFileIndexExtension.INDEX_ID, name, null, { file, value ->
-                val className by lazy {
-                    file.inputStream.use {
-                        ClassReader(it).className
+            FileBasedIndex.getInstance().processValues(
+                ClassFileIndexExtension.INDEX_ID, name, null,
+                { file, value ->
+                    val className by lazy {
+                        file.inputStream.use {
+                            ClassReader(it).className
+                        }
                     }
-                }
-                value[key]?.let {
-                    files[file] = it.toMutableMap()
-                }
-                value[DelegateIndexKey(key)]?.let { delegate ->
-                    delegate.keys.mapTo(locationsToSearchFurther) { Pair(it, className) }
-                }
-                true
-            }, globalScope)
+                    value[key]?.let {
+                        files[file] = it.toMutableMap()
+                    }
+                    value[DelegateIndexKey(key)]?.let { delegate ->
+                        delegate.keys.mapTo(locationsToSearchFurther) { Pair(it, className) }
+                    }
+                    true
+                },
+                globalScope
+            )
             for ((location, owner) in locationsToSearchFurther) {
                 searchLocation(location, owner, globalScope) { file, sourceMap ->
                     val targetMap = files.computeIfAbsent(file) { mutableMapOf() }
@@ -64,21 +68,25 @@ class ClassFileIndex {
             val globalScope = asGlobal(scope)
             val files = mutableMapOf<VirtualFile, MutableMap<BinaryIndexKey, MutableMap<String, Int>>>()
             val locationsToSearchFurther = mutableSetOf<Triple<BinaryIndexKey, String, String>>()
-            FileBasedIndex.getInstance().processValues(ClassFileIndexExtension.INDEX_ID, name, null, { file, value ->
-                val className by lazy {
-                    file.inputStream.use {
-                        ClassReader(it).className
+            FileBasedIndex.getInstance().processValues(
+                ClassFileIndexExtension.INDEX_ID, name, null,
+                { file, value ->
+                    val className by lazy {
+                        file.inputStream.use {
+                            ClassReader(it).className
+                        }
                     }
-                }
-                for ((key, v) in value) {
-                    if (keyPredicate(key)) {
-                        files.computeIfAbsent(file) { mutableMapOf() }[key] = v.toMutableMap()
-                    } else if (key is DelegateIndexKey && keyPredicate(key.key)) {
-                        v.keys.mapTo(locationsToSearchFurther) { Triple(key.key, it, className) }
+                    for ((key, v) in value) {
+                        if (keyPredicate(key)) {
+                            files.computeIfAbsent(file) { mutableMapOf() }[key] = v.toMutableMap()
+                        } else if (key is DelegateIndexKey && keyPredicate(key.key)) {
+                            v.keys.mapTo(locationsToSearchFurther) { Triple(key.key, it, className) }
+                        }
                     }
-                }
-                true
-            }, globalScope)
+                    true
+                },
+                globalScope
+            )
             for ((key, location, owner) in locationsToSearchFurther) {
                 searchLocation(location, owner, globalScope) { file, sourceMap ->
                     val targetMap = files.computeIfAbsent(file) { mutableMapOf() }
@@ -91,7 +99,12 @@ class ClassFileIndex {
             return files
         }
 
-        private fun searchLocation(location: String, owner: String, scope: GlobalSearchScope, consumer: (VirtualFile, Map<String, Int>) -> Unit) {
+        private fun searchLocation(
+            location: String,
+            owner: String,
+            scope: GlobalSearchScope,
+            consumer: (VirtualFile, Map<String, Int>) -> Unit
+        ) {
             RecursionManager.doPreventingRecursion(Pair(location, owner), true) {
                 val name = location.substringBefore(":")
                 val desc = location.substringAfter(":")

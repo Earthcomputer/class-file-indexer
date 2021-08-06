@@ -1,10 +1,21 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.psi.*
+import com.intellij.psi.JavaRecursiveElementVisitor
+import com.intellij.psi.PsiAnonymousClass
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiClassInitializer
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiEnumConstant
+import com.intellij.psi.PsiExpressionStatement
+import com.intellij.psi.PsiField
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.PsiModifier
+import com.intellij.psi.PsiRecordComponent
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 
-open class DecompiledSourceElementLocator<T: PsiElement>(
+open class DecompiledSourceElementLocator<T : PsiElement>(
     val className: String,
     private val location: String,
     val index: Int
@@ -38,7 +49,6 @@ open class DecompiledSourceElementLocator<T: PsiElement>(
     private fun isInClassLocation(): Boolean {
         return classScopeStack.descendingIterator().asSequence()
             .joinToString("\$") { it.className } == className
-
     }
 
     private fun isInLocation(element: PsiElement): Boolean {
@@ -72,9 +82,11 @@ open class DecompiledSourceElementLocator<T: PsiElement>(
             is PsiField -> {
                 val initializer = parent.initializer
                 val enumConstantArgs = (parent as? PsiEnumConstant)?.argumentList
-                val isInInitializer = !PsiUtil.isCompileTimeConstant(parent)
-                        && ((initializer != null && PsiTreeUtil.isAncestor(initializer, element, false))
-                            || (enumConstantArgs != null && PsiTreeUtil.isAncestor(enumConstantArgs, element, false)))
+                val isInInitializer = !PsiUtil.isCompileTimeConstant(parent) &&
+                    (
+                        (initializer != null && PsiTreeUtil.isAncestor(initializer, element, false)) ||
+                            (enumConstantArgs != null && PsiTreeUtil.isAncestor(enumConstantArgs, element, false))
+                        )
                 if (isInInitializer) {
                     if (!locationIsMethod) {
                         return false

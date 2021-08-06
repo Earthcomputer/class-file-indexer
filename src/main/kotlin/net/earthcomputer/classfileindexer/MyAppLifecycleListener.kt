@@ -10,7 +10,11 @@ import java.io.File
 import java.io.InputStream
 import java.lang.management.ManagementFactory
 import java.nio.file.Files
-import java.util.jar.*
+import java.util.jar.Attributes
+import java.util.jar.JarEntry
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+import java.util.jar.Manifest
 
 class MyAppLifecycleListener : AppLifecycleListener {
     companion object {

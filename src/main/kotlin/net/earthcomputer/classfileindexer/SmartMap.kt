@@ -1,11 +1,7 @@
 package net.earthcomputer.classfileindexer
 
-import java.lang.IllegalStateException
-import kotlin.ConcurrentModificationException
-import kotlin.NoSuchElementException
-
 // A mutable version of SmartFMap
-class SmartMap<K: Any?, V: Any>: AbstractMutableMap<K, V>() {
+class SmartMap<K : Any?, V : Any> : AbstractMutableMap<K, V>() {
     companion object {
         const val ARRAY_THRESHOLD = 8
     }
@@ -186,7 +182,7 @@ class SmartMap<K: Any?, V: Any>: AbstractMutableMap<K, V>() {
         }
     }
 
-    private class MutableEntry<K: Any?, V: Any>(
+    private class MutableEntry<K : Any?, V : Any>(
         private val k: K,
         v: V,
         private val smartMap: SmartMap<K, V>,
@@ -264,7 +260,6 @@ class SmartMap<K: Any?, V: Any>: AbstractMutableMap<K, V>() {
             return "($key, $value)"
         }
     }
-
 
     private fun convertToMap() {
         val arr = value as Array<*>

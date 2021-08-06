@@ -1,6 +1,11 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.psi.*
+import com.intellij.psi.PsiCompiledFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiModifier
+import com.intellij.psi.PsiReference
+import com.intellij.psi.PsiSubstitutor
+import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.MethodReferencesSearch
 import com.intellij.psi.util.MethodSignatureUtil
@@ -66,11 +71,15 @@ class MethodReferencesSearchExtension : QueryExecutor<PsiReference, MethodRefere
             } else {
                 method.name
             }
-            val files = ClassFileIndex.search(methodBinaryName, { key ->
-                key is MethodIndexKey
-                        && allowedOwners.contains(key.owner)
-                        && (!queryParameters.isStrictSignatureSearch || allowedDescs.contains(key.desc))
-            }, queryParameters.effectiveSearchScope)
+            val files = ClassFileIndex.search(
+                methodBinaryName,
+                { key ->
+                    key is MethodIndexKey &&
+                        allowedOwners.contains(key.owner) &&
+                        (!queryParameters.isStrictSignatureSearch || allowedDescs.contains(key.desc))
+                },
+                queryParameters.effectiveSearchScope
+            )
             if (files.isEmpty()) {
                 return@scope
             }

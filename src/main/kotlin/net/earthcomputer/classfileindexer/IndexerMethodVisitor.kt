@@ -1,6 +1,12 @@
 package net.earthcomputer.classfileindexer
 
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.*
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.AnnotationVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Handle
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Label
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.MethodVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Opcodes
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.TypePath
 
 class IndexerMethodVisitor(
     private val cv: IndexerClassVisitor,
@@ -68,6 +74,7 @@ class IndexerMethodVisitor(
     ) {
         when (bootstrapMethodHandle.owner) {
             "java/lang/invoke/LambdaMetafactory" -> {
+                @Suppress("MagicNumber")
                 val invokedMethod = when (bootstrapMethodHandle.name) {
                     "metafactory" -> {
                         if (bootstrapMethodArguments.size < 3) return
@@ -95,12 +102,12 @@ class IndexerMethodVisitor(
                                 cv.addRef(argumentType.internalName, ImplicitToStringKey.INSTANCE)
                             }
                         }
-                        if (bootstrapMethodHandle.name == "makeConcatWithConstants") {
-                            val recipe = bootstrapMethodArguments.getOrNull(0) as? String ?: return
-                            recipe.split('\u0001', '\u0002').filter { it.isNotEmpty() }
-                                .forEach { cv.addStringConstant(it) }
-                            cv.addConstant(bootstrapMethodArguments.getOrNull(1))
-                        }
+//                        if (bootstrapMethodHandle.name == "makeConcatWithConstants") {
+//                            val recipe = bootstrapMethodArguments.getOrNull(0) as? String ?: return
+//                            recipe.split('\u0001', '\u0002').filter { it.isNotEmpty() }
+//                                .forEach { cv.addStringConstant(it) }
+//                            cv.addConstant(bootstrapMethodArguments.getOrNull(1))
+//                        }
                     }
                 }
             }

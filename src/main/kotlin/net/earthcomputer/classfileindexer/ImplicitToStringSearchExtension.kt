@@ -1,7 +1,13 @@
 package net.earthcomputer.classfileindexer
 
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.*
+import com.intellij.psi.CommonClassNames
+import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiCompiledFile
+import com.intellij.psi.PsiExpression
+import com.intellij.psi.PsiType
+import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.ImplicitToStringSearch
 import com.intellij.util.Processor
@@ -12,14 +18,17 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
         queryParameters: ImplicitToStringSearch.SearchParameters,
         consumer: Processor<in PsiExpression>
     ): Boolean {
-        runReadActionInSmartModeWithWritePriority(queryParameters.targetMethod.project, {
-            queryParameters.targetMethod.isValid
-        }) scope@{
+        runReadActionInSmartModeWithWritePriority(
+            queryParameters.targetMethod.project,
+            {
+                queryParameters.targetMethod.isValid
+            }
+        ) scope@{
             val files = mutableMapOf<VirtualFile, MutableMap<String, Int>>()
             val declaringClass = queryParameters.targetMethod.containingClass ?: return@scope
             addFiles(declaringClass, queryParameters, files)
             for (inheritor in ClassInheritorsSearch.search(declaringClass)) {
-                addFiles(declaringClass, queryParameters, files)
+                addFiles(inheritor, queryParameters, files)
             }
             val baseClassPtr = SmartPointerManager.createPointer(declaringClass)
             var id = 0
@@ -44,7 +53,8 @@ class ImplicitToStringSearchExtension : QueryExecutor<PsiExpression, ImplicitToS
     private fun addFiles(
         owningClass: PsiClass,
         queryParameters: ImplicitToStringSearch.SearchParameters,
-        files: MutableMap<VirtualFile, MutableMap<String, Int>>) {
+        files: MutableMap<VirtualFile, MutableMap<String, Int>>
+    ) {
         val internalName = owningClass.internalName ?: return
         val results = ClassFileIndex.search(internalName, ImplicitToStringKey.INSTANCE, queryParameters.searchScope)
         for ((file, sourceMap) in results) {

@@ -1,7 +1,16 @@
 package net.earthcomputer.classfileindexer
 
 import com.intellij.openapi.diagnostic.Logger
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.*
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.AnnotationVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ConstantDynamic
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.FieldVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Handle
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.MethodVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Opcodes
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.RecordComponentVisitor
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
+import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.TypePath
 
 class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     lateinit var className: String
@@ -42,14 +51,13 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
         }
     }
 
-    fun addStringConstant(cst: String) {
-        // TODO
-        //addRef(cst, StringConstantKey.INSTANCE)
-    }
+//    fun addStringConstant(cst: String) {
+//        // addRef(cst, StringConstantKey.INSTANCE)
+//    }
     fun addConstant(cst: Any?) {
         if (cst == null) return
         when (cst) {
-            is String -> addStringConstant(cst)
+            // is String -> addStringConstant(cst) TODO
             is Type -> addTypeDescriptor(cst.descriptor)
             is Handle -> {
                 when (cst.tag) {

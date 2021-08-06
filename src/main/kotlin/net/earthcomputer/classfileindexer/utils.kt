@@ -7,12 +7,28 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.*
+import com.intellij.psi.JavaElementVisitor
+import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiAnonymousClass
+import com.intellij.psi.PsiArrayType
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiClassType
+import com.intellij.psi.PsiCompiledFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiField
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiPrimitiveType
+import com.intellij.psi.PsiType
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.util.*
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.psi.util.PsiTreeUtil
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
 
-private val internalNamesCache = MapMaker().weakKeys().concurrencyLevel(4).makeMap<PsiClass, CachedValue<String?>>()
+private val internalNamesCache = MapMaker().weakKeys().makeMap<PsiClass, CachedValue<String?>>() // concurrent, uses identity for keys
 private fun PsiClass.computeInternalName(): String? {
     val containingClass = containingClass ?: return qualifiedName?.replace('.', '/')
     val containingInternalName = containingClass.internalName ?: return null
@@ -76,7 +92,7 @@ val PsiMethod.descriptor: String?
         return "(" + descriptors.joinToString("") + ")" + returnDesc
     }
 
-inline fun <reified T: PsiElement> PsiElement.getParentOfType() = PsiTreeUtil.getParentOfType(this, T::class.java)
+inline fun <reified T : PsiElement> PsiElement.getParentOfType() = PsiTreeUtil.getParentOfType(this, T::class.java)
 
 fun Type.isPrimitive() = sort != Type.ARRAY && sort != Type.OBJECT && sort != Type.METHOD
 
@@ -85,7 +101,10 @@ fun isDescriptorOfType(desc: String, type: PsiType) = isDescriptorOfType(Type.ge
 private val SLASHES_AND_DOLLARS = "[/$]".toRegex()
 fun isDescriptorOfType(desc: Type, type: PsiType): Boolean {
     return when (type) {
-        is PsiArrayType -> desc.sort == Type.ARRAY && desc.dimensions == type.arrayDimensions && isDescriptorOfType(desc.elementType, type.deepComponentType)
+        is PsiArrayType ->
+            desc.sort == Type.ARRAY &&
+                desc.dimensions == type.arrayDimensions &&
+                isDescriptorOfType(desc.elementType, type.deepComponentType)
         is PsiPrimitiveType -> desc.isPrimitive() && type.kind.binaryName == desc.descriptor
         is PsiClassType -> {
             if (desc.sort != Type.OBJECT) {
@@ -175,17 +194,20 @@ fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: (
         if (!shouldIgnoreSmart) {
             dumbService.waitForSmartMode()
         }
-        progressManager.runInReadActionWithWriteActionPriority(action@{
-            if (!project.isOpen || !validityCheck()) {
-                canceled = true
-                return@action
-            }
-            if (!shouldIgnoreSmart && dumbService.isDumb) {
-                return@action
-            }
-            action()
-            completed = true
-        }, null)
+        progressManager.runInReadActionWithWriteActionPriority(
+            action@{
+                if (!project.isOpen || !validityCheck()) {
+                    canceled = true
+                    return@action
+                }
+                if (!shouldIgnoreSmart && dumbService.isDumb) {
+                    return@action
+                }
+                action()
+                completed = true
+            },
+            null
+        )
         if (canceled) {
             return false
         }

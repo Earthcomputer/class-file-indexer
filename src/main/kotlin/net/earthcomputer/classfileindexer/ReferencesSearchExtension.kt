@@ -1,7 +1,12 @@
 package net.earthcomputer.classfileindexer
 
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.*
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiCompiledFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiField
+import com.intellij.psi.PsiReference
+import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -21,8 +26,13 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
         return true
     }
 
-    private fun processField(element: PsiField, queryParameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>, scope: SearchScope) {
-        runReadActionInSmartModeWithWritePriority(queryParameters.project, {queryParameters.isQueryValid}) scope@{
+    private fun processField(
+        element: PsiField,
+        queryParameters: ReferencesSearch.SearchParameters,
+        consumer: Processor<in PsiReference>,
+        scope: SearchScope
+    ) {
+        runReadActionInSmartModeWithWritePriority(queryParameters.project, { queryParameters.isQueryValid }) scope@{
             val fieldName = element.name
             val declaringClass = element.containingClass ?: return@scope
             val validOwnerNames = mutableSetOf(declaringClass.internalName)
@@ -31,9 +41,13 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
             }
             val readFiles = mutableMapOf<VirtualFile, Map<String, Int>>()
             val writeFiles = mutableMapOf<VirtualFile, Map<String, Int>>()
-            val results = ClassFileIndex.searchReturnKeys(fieldName, { key ->
-                key is FieldIndexKey && validOwnerNames.contains(key.owner)
-            }, scope)
+            val results = ClassFileIndex.searchReturnKeys(
+                fieldName,
+                { key ->
+                    key is FieldIndexKey && validOwnerNames.contains(key.owner)
+                },
+                scope
+            )
             if (results.isEmpty()) {
                 return@scope
             }
@@ -66,7 +80,12 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
         }
     }
 
-    private fun processClass(element: PsiClass, queryParameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>, scope: SearchScope) {
+    private fun processClass(
+        element: PsiClass,
+        queryParameters: ReferencesSearch.SearchParameters,
+        consumer: Processor<in PsiReference>,
+        scope: SearchScope
+    ) {
         runReadActionInSmartModeWithWritePriority(queryParameters.project, { queryParameters.isQueryValid }) scope@{
             val internalName = element.internalName ?: return@scope
             val files = ClassFileIndex.search(internalName, ClassIndexKey.INSTANCE, scope)
@@ -78,7 +97,13 @@ class ReferencesSearchExtension : QueryExecutor<PsiReference, ReferencesSearch.S
                 val psiFile = findCompiledFileWithoutSources(queryParameters.project, file) ?: continue
                 for ((location, count) in occurrences) {
                     repeat(count) { i ->
-                        consumer.process(ClassRefElement(id++, psiFile, ClassLocator(internalName, file.nameWithoutExtension, location, i)).createReference(element))
+                        consumer.process(
+                            ClassRefElement(
+                                id++,
+                                psiFile,
+                                ClassLocator(internalName, file.nameWithoutExtension, location, i)
+                            ).createReference(element)
+                        )
                     }
                 }
             }

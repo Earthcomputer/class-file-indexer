@@ -1,13 +1,13 @@
 import io.gitlab.arturbosch.detekt.Detekt
-import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 buildscript {
     repositories {
@@ -52,12 +52,14 @@ abstract class MyRepackager : TransformAction<TransformParameters.None> {
     abstract fun getInputArtifact(): Provider<FileSystemLocation>
     override fun transform(outputs: TransformOutputs) {
         val input = getInputArtifact().get().asFile
-        val output = outputs.file(input.name.let {
-            if (it.endsWith(".jar"))
-                it.replaceRange(it.length - 4, it.length, "-repackaged.jar")
-            else
-                "$it-repackaged"
-        })
+        val output = outputs.file(
+            input.name.let {
+                if (it.endsWith(".jar"))
+                    it.replaceRange(it.length - 4, it.length, "-repackaged.jar")
+                else
+                    "$it-repackaged"
+            }
+        )
         println("Repackaging ${input.absolutePath} to ${output.absolutePath}")
         ZipOutputStream(output.outputStream()).use { zipOut ->
             ZipFile(input).use { zipIn ->
@@ -72,16 +74,22 @@ abstract class MyRepackager : TransformAction<TransformParameters.None> {
                     zipOut.putNextEntry(ZipEntry(newName))
                     if (entry.name.endsWith(".class")) {
                         val writer = ClassWriter(0)
-                        ClassReader(zipIn.getInputStream(entry)).accept(ClassRemapper(writer, object : Remapper() {
-                            override fun map(internalName: String?): String? {
-                                if (internalName == null) return null
-                                return if (entriesSet.contains("$internalName.class")) {
-                                    "net/earthcomputer/classindexfinder/libs/$internalName"
-                                } else {
-                                    internalName
+                        ClassReader(zipIn.getInputStream(entry)).accept(
+                            ClassRemapper(
+                                writer,
+                                object : Remapper() {
+                                    override fun map(internalName: String?): String? {
+                                        if (internalName == null) return null
+                                        return if (entriesSet.contains("$internalName.class")) {
+                                            "net/earthcomputer/classindexfinder/libs/$internalName"
+                                        } else {
+                                            internalName
+                                        }
+                                    }
                                 }
-                            }
-                        }), 0)
+                            ),
+                            0
+                        )
                         zipOut.write(writer.toByteArray())
                     } else {
                         zipIn.getInputStream(entry).copyTo(zipOut)

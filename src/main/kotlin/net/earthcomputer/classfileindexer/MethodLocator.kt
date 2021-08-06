@@ -1,6 +1,13 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.psi.*
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.PsiMethodReferenceExpression
+import com.intellij.psi.PsiModifier
+import com.intellij.psi.PsiNewExpression
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.InheritanceUtil
 import com.intellij.psi.util.MethodSignatureUtil
 
@@ -44,8 +51,9 @@ class MethodLocator(
                 // already checked our conditions
                 return true
             }
-            if (method.hasModifierProperty(PsiModifier.PRIVATE)
-                || method.hasModifierProperty(PsiModifier.STATIC)) {
+            if (method.hasModifierProperty(PsiModifier.PRIVATE) ||
+                method.hasModifierProperty(PsiModifier.STATIC)
+            ) {
                 return method.containingClass == theMethod.containingClass
             }
             InheritanceUtil.isInheritorOrSelf(method.containingClass, method.containingClass, true)

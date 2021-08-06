@@ -1,20 +1,30 @@
 package net.earthcomputer.classfileindexer
 
-import com.intellij.codeEditor.JavaEditorFileSwapper
 import com.intellij.ide.highlighter.JavaClassFileType
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.util.indexing.*
+import com.intellij.util.indexing.CustomImplementationFileBasedIndexExtension
+import com.intellij.util.indexing.DataIndexer
+import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
+import com.intellij.util.indexing.FileBasedIndexExtension
+import com.intellij.util.indexing.FileContent
+import com.intellij.util.indexing.ID
+import com.intellij.util.indexing.IndexInfrastructure
 import com.intellij.util.indexing.impl.IndexStorage
 import com.intellij.util.indexing.impl.storage.VfsAwareMapReduceIndex
-import com.intellij.util.io.*
+import com.intellij.util.io.DataExternalizer
+import com.intellij.util.io.DataInputOutputUtil
+import com.intellij.util.io.IOUtil
+import com.intellij.util.io.KeyDescriptor
+import com.intellij.util.io.PersistentStringEnumerator
+import com.intellij.util.io.StorageLockContext
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassReader
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
 import java.nio.file.Path
 
-class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexKey, Map<String, Int>>>(),
+class ClassFileIndexExtension :
+    FileBasedIndexExtension<String, Map<BinaryIndexKey, Map<String, Int>>>(),
     CustomImplementationFileBasedIndexExtension<String, Map<BinaryIndexKey, Map<String, Int>>> {
     override fun getName() = INDEX_ID
 
@@ -75,13 +85,15 @@ class ClassFileIndexExtension : FileBasedIndexExtension<String, Map<BinaryIndexK
     companion object {
         private val LOGGER = Logger.getInstance(ClassFileIndexExtension::class.java)
         val INDEX_ID = ID.create<String, Map<BinaryIndexKey, Map<String, Int>>>("classfileindexer.index")
+        private const val ENUMERATOR_INITIAL_SIZE = 1024 * 4
     }
 
     private val enumeratorPath: Path = IndexInfrastructure.getIndexRootDir(INDEX_ID).toPath().resolve("classfileindexer.constpool")
     private var enumerator = createEnumerator()
 
     private fun createEnumerator(): PersistentStringEnumerator {
-        return PersistentStringEnumerator(enumeratorPath, 1024 * 4, true, StorageLockContext(true))
+        @Suppress("UnstableApiUsage")
+        return PersistentStringEnumerator(enumeratorPath, ENUMERATOR_INITIAL_SIZE, true, StorageLockContext(true))
     }
 
     private fun readString(input: DataInput): String {

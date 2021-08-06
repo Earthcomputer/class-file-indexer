@@ -1,8 +1,29 @@
 # Default detekt configuration:
 # https://github.com/detekt/detekt/blob/master/detekt-core/src/main/resources/default-detekt-config.yml
 
+
+
+complexity:
+  active: false
+
+exceptions:
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: false
+
 formatting:
   Indentation:
     continuationIndentSize: 8
-  ParameterListWrapping:
-    indentSize: 8
+  MaximumLineLength:
+    maxLineLength: 150
+
+performance:
+  SpreadOperator:
+    active: false
+
+style:
+  ReturnCount:
+    active: false
+  MaxLineLength:
+    maxLineLength: 150
+  LoopWithTooManyJumpStatements:
+    active: false
