@@ -1,5 +1,6 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.tasks.RunPluginVerifierTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -193,6 +194,8 @@ tasks {
 
     runPluginVerifier {
         ideVersions.set(properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty))
+        failureLevel.add(RunPluginVerifierTask.FailureLevel.COMPATIBILITY_PROBLEMS)
+        failureLevel.add(RunPluginVerifierTask.FailureLevel.COMPATIBILITY_WARNINGS)
     }
 
     publishPlugin {

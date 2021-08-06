@@ -10,7 +10,7 @@ import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.indexing.IndexInfrastructure
-import com.intellij.util.indexing.impl.IndexStorage
+import com.intellij.util.indexing.impl.storage.VfsAwareIndexStorageLayout
 import com.intellij.util.indexing.impl.storage.VfsAwareMapReduceIndex
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.DataInputOutputUtil
@@ -33,6 +33,7 @@ class ClassFileIndexExtension :
         val bytes = content.content
         val cv = IndexerClassVisitor()
         ClassReader(bytes).accept(cv, ClassReader.SKIP_FRAMES)
+        @Suppress("USELESS_CAST") // kotlin compiler bug
         cv.index as Map<String, Map<BinaryIndexKey, Map<String, Int>>>
     }
 
@@ -89,7 +90,7 @@ class ClassFileIndexExtension :
         private const val ENUMERATOR_INITIAL_SIZE = 1024 * 4
     }
 
-    private val enumeratorPath: Path = IndexInfrastructure.getIndexRootDir(INDEX_ID).toPath().resolve("classfileindexer.constpool")
+    private val enumeratorPath: Path = IndexInfrastructure.getIndexRootDir(INDEX_ID).resolve("classfileindexer.constpool")
     private var enumerator = createEnumerator()
 
     private fun createEnumerator(): PersistentStringEnumerator {
@@ -119,10 +120,11 @@ class ClassFileIndexExtension :
         }
     }
 
+    @Suppress("UnstableApiUsage")
     override fun createIndexImplementation(
         extension: FileBasedIndexExtension<String, Map<BinaryIndexKey, Map<String, Int>>>,
-        storage: IndexStorage<String, Map<BinaryIndexKey, Map<String, Int>>>
-    ) = object : VfsAwareMapReduceIndex<String, Map<BinaryIndexKey, Map<String, Int>>>(extension, storage) {
+        indexStorageLayout: VfsAwareIndexStorageLayout<String, Map<BinaryIndexKey, Map<String, Int>>>
+    ) = object : VfsAwareMapReduceIndex<String, Map<BinaryIndexKey, Map<String, Int>>>(extension, indexStorageLayout, null) {
         override fun doClear() {
             super.doClear()
             recreateEnumerator()

@@ -106,7 +106,7 @@ open class FakeDecompiledElement<T : PsiElement>(
 
     override fun getCustomDescription(): Array<TextChunk> {
         val colorScheme = UsageTreeColorsScheme.getInstance().scheme
-        val ret = mutableListOf(TextChunk(colorScheme.getAttributes(UsageTreeColors.USAGE_LOCATION), "#${locator.index + 1}"))
+        val ret = mutableListOf(TextChunk(UsageTreeColors.NUMBER_OF_USAGES_ATTRIBUTES.toTextAttributes(), "#${locator.index + 1}"))
 
         fun makePresentableType(type: Type): List<TextChunk> {
             val plainType = if (type.sort == Type.ARRAY) {
