@@ -27,3 +27,5 @@ style:
     maxLineLength: 150
   LoopWithTooManyJumpStatements:
     active: false
+  ForbiddenComment:
+    active: false
