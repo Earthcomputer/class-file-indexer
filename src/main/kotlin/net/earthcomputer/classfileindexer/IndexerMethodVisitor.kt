@@ -248,9 +248,9 @@ class IndexerMethodVisitor(
         if (insnIndex != insns.size) return
 
         when (memberInsn.opcode) {
-            Opcodes.GETFIELD, Opcodes.GETSTATIC -> cv.addDelegateRef(memberInsn.name, FieldIndexKey(memberInsn.owner, false))
-            Opcodes.PUTFIELD, Opcodes.PUTSTATIC -> cv.addDelegateRef(memberInsn.name, FieldIndexKey(memberInsn.owner, true))
-            else -> cv.addDelegateRef(memberInsn.name, MethodIndexKey(memberInsn.owner, memberInsn.desc))
+            Opcodes.GETFIELD, Opcodes.GETSTATIC -> cv.addDelegateRef(memberInsn.name, FieldIndexKey(memberInsn.owner.intern(), false))
+            Opcodes.PUTFIELD, Opcodes.PUTSTATIC -> cv.addDelegateRef(memberInsn.name, FieldIndexKey(memberInsn.owner.intern(), true))
+            else -> cv.addDelegateRef(memberInsn.name, MethodIndexKey(memberInsn.owner.intern(), memberInsn.desc.intern()))
         }
     }
 

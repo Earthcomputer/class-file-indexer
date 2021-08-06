@@ -10,18 +10,18 @@ sealed class BinaryIndexKey(private val id: Int) {
     override fun equals(other: Any?) = id == (other as? BinaryIndexKey)?.id
     override fun toString() = "${javaClass.simpleName}.INSTANCE"
 
-    open fun write(output: DataOutput) {
+    open fun write(output: DataOutput, writeString: (DataOutput, String) -> Unit) {
         DataInputOutputUtil.writeINT(output, id)
     }
     companion object {
-        fun read(input: DataInput): BinaryIndexKey {
+        fun read(input: DataInput, readString: (DataInput) -> String): BinaryIndexKey {
             return when (DataInputOutputUtil.readINT(input)) {
                 ClassIndexKey.ID -> ClassIndexKey.INSTANCE
-                FieldIndexKey.ID -> FieldIndexKey.read(input)
-                MethodIndexKey.ID -> MethodIndexKey.read(input)
+                FieldIndexKey.ID -> FieldIndexKey.read(input, readString)
+                MethodIndexKey.ID -> MethodIndexKey.read(input, readString)
                 StringConstantKey.ID -> StringConstantKey.INSTANCE
                 ImplicitToStringKey.ID -> ImplicitToStringKey.INSTANCE
-                DelegateIndexKey.ID -> DelegateIndexKey.read(input)
+                DelegateIndexKey.ID -> DelegateIndexKey.read(input, readString)
                 else -> throw IOException("Unknown binary index key type")
             }
         }
@@ -42,15 +42,15 @@ class FieldIndexKey(val owner: String, val isWrite: Boolean) : BinaryIndexKey(ID
     }
     override fun toString() = "FieldIndexKey($owner, $isWrite)"
 
-    override fun write(output: DataOutput) {
-        super.write(output)
-        output.writeUTF(owner)
+    override fun write(output: DataOutput, writeString: (DataOutput, String) -> Unit) {
+        super.write(output, writeString)
+        writeString(output, owner)
         output.writeBoolean(isWrite)
     }
 
     companion object {
         const val ID = 1
-        fun read(input: DataInput) = FieldIndexKey(input.readUTF().intern(), input.readBoolean())
+        fun read(input: DataInput, readString: (DataInput) -> String) = FieldIndexKey(readString(input), input.readBoolean())
     }
 }
 class MethodIndexKey(val owner: String, val desc: String) : BinaryIndexKey(ID) {
@@ -62,15 +62,15 @@ class MethodIndexKey(val owner: String, val desc: String) : BinaryIndexKey(ID) {
     }
     override fun toString() = "MethodIndexKey($owner, $desc)"
 
-    override fun write(output: DataOutput) {
-        super.write(output)
-        output.writeUTF(owner)
-        output.writeUTF(desc)
+    override fun write(output: DataOutput, writeString: (DataOutput, String) -> Unit) {
+        super.write(output, writeString)
+        writeString(output, owner)
+        writeString(output, desc)
     }
 
     companion object {
         const val ID = 2
-        fun read(input: DataInput) = MethodIndexKey(input.readUTF().intern(), input.readUTF().intern())
+        fun read(input: DataInput, readString: (DataInput) -> String) = MethodIndexKey(readString(input), readString(input))
     }
 }
 class StringConstantKey private constructor() : BinaryIndexKey(ID) {
@@ -94,13 +94,13 @@ class DelegateIndexKey(val key: BinaryIndexKey) : BinaryIndexKey(ID) {
     }
     override fun toString() = "DelegateIndexKey($key)"
 
-    override fun write(output: DataOutput) {
-        super.write(output)
-        key.write(output)
+    override fun write(output: DataOutput, writeString: (DataOutput, String) -> Unit) {
+        super.write(output, writeString)
+        key.write(output, writeString)
     }
 
     companion object {
         const val ID = 5
-        fun read(input: DataInput) = DelegateIndexKey(BinaryIndexKey.read(input))
+        fun read(input: DataInput, readString: (DataInput) -> String) = DelegateIndexKey(BinaryIndexKey.read(input, readString))
     }
 }

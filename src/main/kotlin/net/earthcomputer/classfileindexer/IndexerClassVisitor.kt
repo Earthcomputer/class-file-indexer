@@ -43,7 +43,8 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     }
 
     fun addStringConstant(cst: String) {
-        addRef(cst, StringConstantKey.INSTANCE)
+        // TODO
+        //addRef(cst, StringConstantKey.INSTANCE)
     }
     fun addConstant(cst: Any?) {
         if (cst == null) return
