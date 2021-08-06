@@ -1,7 +1,9 @@
 package net.earthcomputer.classfileindexer
 
+import com.intellij.codeEditor.JavaEditorFileSwapper
 import com.intellij.ide.highlighter.JavaClassFileType
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.indexing.*
 import com.intellij.util.indexing.impl.IndexStorage
 import com.intellij.util.indexing.impl.storage.VfsAwareMapReduceIndex

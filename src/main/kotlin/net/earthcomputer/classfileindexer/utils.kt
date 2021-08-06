@@ -1,6 +1,7 @@
 package net.earthcomputer.classfileindexer
 
 import com.google.common.collect.MapMaker
+import com.intellij.codeEditor.JavaEditorFileSwapper
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
@@ -150,13 +151,14 @@ fun getTypeFromDescriptor(project: Project, scope: GlobalSearchScope, desc: Type
     }
 }
 
-fun findCompiledFile(project: Project, file: VirtualFile): PsiCompiledFile? {
+fun findCompiledFileWithoutSources(project: Project, file: VirtualFile): PsiCompiledFile? {
     val className = file.nameWithoutExtension
     val actualFile = if (className.contains("\$")) {
         file.parent?.findChild("${className.substringBefore("\$")}.class") ?: file
     } else {
         file
     }
+    if (JavaEditorFileSwapper.findSourceFile(project, actualFile) != null) return null
     return PsiManager.getInstance(project).findFile(actualFile) as? PsiCompiledFile
 }
 

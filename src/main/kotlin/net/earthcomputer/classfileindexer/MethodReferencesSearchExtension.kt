@@ -77,7 +77,7 @@ class MethodReferencesSearchExtension : QueryExecutor<PsiReference, MethodRefere
             val methodPtr = SmartPointerManager.createPointer(method)
             var id = 0
             for ((file, occurrences) in files) {
-                val psiFile = findCompiledFile(queryParameters.project, file) ?: continue
+                val psiFile = findCompiledFileWithoutSources(queryParameters.project, file) ?: continue
                 for ((location, count) in occurrences) {
                     repeat(count) { i ->
                         consumer.process(
