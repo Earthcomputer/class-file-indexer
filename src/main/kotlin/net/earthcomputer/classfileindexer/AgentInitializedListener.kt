@@ -67,7 +67,7 @@ class AgentInitializedListener : ApplicationInitializedListener {
             copyAgentClass("$AGENT_CLASS_NAME\$HookMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$UsageInfoGetNavigationOffsetVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$HasCustomDescriptionVisitor")
-            copyAgentClass("$AGENT_CLASS_NAME\$InitChunksMethodVisitor")
+            copyAgentClass("$AGENT_CLASS_NAME\$ComputeTextMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$IsAccessedForWriteMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$JavaReadWriteAccessDetectorMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$UsageInfoLineNumberMethodVisitor")

@@ -79,7 +79,12 @@ public class MyAgent implements ClassFileTransformer {
                             new HookClassVisitor.Target(
                                     "initChunks",
                                     "()[Lcom/intellij/usages/TextChunk;",
-                                    InitChunksMethodVisitor::new
+                                    (methodVisitor, hookInfo) -> new ComputeTextMethodVisitor(methodVisitor, hookInfo, true)
+                            ),
+                            new HookClassVisitor.Target(
+                                    "computeText",
+                                    "()[Lcom/intellij/usages/TextChunk;",
+                                    (methodVisitor1, hookInfo1) -> new ComputeTextMethodVisitor(methodVisitor1, hookInfo1, false)
                             )
                     );
                     return transformClass(
@@ -473,11 +478,13 @@ public class MyAgent implements ClassFileTransformer {
         }
     }
 
-    private static class InitChunksMethodVisitor extends HookMethodVisitor {
+    private static class ComputeTextMethodVisitor extends HookMethodVisitor {
+        private final boolean storeToCacheField;
         private boolean waitingForAstore = false;
 
-        public InitChunksMethodVisitor(MethodVisitor methodVisitor, HookClassVisitor.HookInfo hookInfo) {
+        public ComputeTextMethodVisitor(MethodVisitor methodVisitor, HookClassVisitor.HookInfo hookInfo, boolean storeToCacheField) {
             super(methodVisitor, hookInfo);
+            this.storeToCacheField = storeToCacheField;
         }
 
         @Override
@@ -498,12 +505,14 @@ public class MyAgent implements ClassFileTransformer {
                 visitVarInsn(Opcodes.ALOAD, var);
                 addInterfaceCall();
                 visitVarInsn(Opcodes.ASTORE, var);
-                visitVarInsn(Opcodes.ALOAD, 0);
-                visitTypeInsn(Opcodes.NEW, "com/intellij/reference/SoftReference");
-                visitInsn(Opcodes.DUP);
-                visitVarInsn(Opcodes.ALOAD, var);
-                visitMethodInsn(Opcodes.INVOKESPECIAL, "com/intellij/reference/SoftReference", "<init>", "(Ljava/lang/Object;)V", false);
-                visitFieldInsn(Opcodes.PUTFIELD, USAGE_INFO_2_USAGE_ADAPTER, "myTextChunks", "Ljava/lang/ref/Reference;");
+                if (storeToCacheField) {
+                    visitVarInsn(Opcodes.ALOAD, 0);
+                    visitTypeInsn(Opcodes.NEW, "com/intellij/reference/SoftReference");
+                    visitInsn(Opcodes.DUP);
+                    visitVarInsn(Opcodes.ALOAD, var);
+                    visitMethodInsn(Opcodes.INVOKESPECIAL, "com/intellij/reference/SoftReference", "<init>", "(Ljava/lang/Object;)V", false);
+                    visitFieldInsn(Opcodes.PUTFIELD, USAGE_INFO_2_USAGE_ADAPTER, "myTextChunks", "Ljava/lang/ref/Reference;");
+                }
                 visitVarInsn(Opcodes.ALOAD, var);
                 visitInsn(Opcodes.ARETURN);
                 addEpilogue();
