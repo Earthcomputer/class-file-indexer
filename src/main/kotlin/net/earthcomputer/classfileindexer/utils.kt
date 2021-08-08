@@ -195,7 +195,7 @@ fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: (
         if (!hasReadAccess) {
             dumbService.waitForSmartMode()
         }
-        val canceledByWrite = progressManager.runInReadActionWithWriteActionPriority(
+        val canceledByWrite = !progressManager.runInReadActionWithWriteActionPriority(
             action@{
                 if (!project.isOpen || !validityCheck()) {
                     canceledInvalid = true
