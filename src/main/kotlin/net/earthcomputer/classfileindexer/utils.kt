@@ -183,24 +183,25 @@ fun findCompiledFileWithoutSources(project: Project, file: VirtualFile): PsiComp
 
 fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: () -> Boolean, action: () -> Unit): Boolean {
     // avoid deadlocks, IndexNotReadyException may be thrown later
-    val shouldIgnoreSmart = ApplicationManager.getApplication().isReadAccessAllowed
+    val hasReadAccess = ApplicationManager.getApplication().isReadAccessAllowed ||
+        ApplicationManager.getApplication().isDispatchThread
 
     val dumbService = DumbService.getInstance(project)
     val progressManager = ProgressManager.getInstance()
 
     var completed = false
-    var canceled = false
+    var canceledInvalid = false
     while (!completed) {
-        if (!shouldIgnoreSmart) {
+        if (!hasReadAccess) {
             dumbService.waitForSmartMode()
         }
-        progressManager.runInReadActionWithWriteActionPriority(
+        val canceledByWrite = progressManager.runInReadActionWithWriteActionPriority(
             action@{
                 if (!project.isOpen || !validityCheck()) {
-                    canceled = true
+                    canceledInvalid = true
                     return@action
                 }
-                if (!shouldIgnoreSmart && dumbService.isDumb) {
+                if (!hasReadAccess && dumbService.isDumb) {
                     return@action
                 }
                 action()
@@ -208,8 +209,14 @@ fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: (
             },
             null
         )
-        if (canceled) {
+        if (canceledInvalid) {
             return false
+        }
+        if (canceledByWrite && hasReadAccess) {
+            // can't wait forever on the dispatch thread, it would cause a deadlock
+            ProgressManager.canceled(ProgressManager.getInstance().progressIndicator)
+            ProgressManager.checkCanceled()
+            break
         }
     }
 
