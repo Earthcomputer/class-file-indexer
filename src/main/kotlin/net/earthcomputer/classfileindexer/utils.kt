@@ -224,11 +224,15 @@ fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: (
     return true
 }
 
-private val SLOW_ALLOWED_FLAG = SlowOperations::class.java.getDeclaredField("ourAllowedFlag")
-    .let { it.isAccessible = true; it }
+@Deprecated("Remove when 2021.1 support is dropped")
+private val SLOW_ALLOWED_FLAG = runCatching {
+    SlowOperations::class.java.getDeclaredField("ourAllowedFlag")
+        .let { it.isAccessible = true; it }
+}.getOrNull()
 
 fun withSlowOperationsIfNecessary(func: () -> Unit) {
-    if (ApplicationManager.getApplication().isDispatchThread && !SLOW_ALLOWED_FLAG.getBoolean(null)) {
+    @Suppress("DEPRECATION")
+    if (ApplicationManager.getApplication().isDispatchThread && SLOW_ALLOWED_FLAG?.getBoolean(null) != true) {
         SlowOperations.allowSlowOperations<RuntimeException>(func)
     } else {
         func()
