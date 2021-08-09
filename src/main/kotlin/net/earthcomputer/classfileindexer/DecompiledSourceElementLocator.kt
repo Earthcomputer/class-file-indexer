@@ -36,7 +36,9 @@ open class DecompiledSourceElementLocator<T : PsiElement>(
         foundElement = null
         foundCount = 0
         constructorCallsThis = false
-        clazz.accept(this)
+        withSlowOperationsIfNecessary {
+            clazz.accept(this)
+        }
         return foundElement
     }
 

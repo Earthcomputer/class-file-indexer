@@ -26,6 +26,7 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.SlowOperations
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
 
 private val internalNamesCache = MapMaker().weakKeys().makeMap<PsiClass, CachedValue<String?>>() // concurrent, uses identity for keys
@@ -221,4 +222,15 @@ fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: (
     }
 
     return true
+}
+
+private val SLOW_ALLOWED_FLAG = SlowOperations::class.java.getDeclaredField("ourAllowedFlag")
+    .let { it.isAccessible = true; it }
+
+fun withSlowOperationsIfNecessary(func: () -> Unit) {
+    if (ApplicationManager.getApplication().isDispatchThread && !SLOW_ALLOWED_FLAG.getBoolean(null)) {
+        SlowOperations.allowSlowOperations<RuntimeException>(func)
+    } else {
+        func()
+    }
 }
