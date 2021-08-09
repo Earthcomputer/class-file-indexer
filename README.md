@@ -5,7 +5,8 @@
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
 
 <!-- Plugin description -->
-Allow find usages in libraries without sources
+Allow find usages in libraries without sources.
+Normally IntelliJ's find usages action does not include results from decompiled library sources. This plugin fixes that. Simply install and you're done!
 <!-- Plugin description end -->
 
 ## Installation
