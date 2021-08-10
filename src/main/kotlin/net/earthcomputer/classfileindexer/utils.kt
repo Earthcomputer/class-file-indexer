@@ -3,6 +3,7 @@ package net.earthcomputer.classfileindexer
 import com.google.common.collect.MapMaker
 import com.intellij.codeEditor.JavaEditorFileSwapper
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -184,8 +185,19 @@ fun findCompiledFileWithoutSources(project: Project, file: VirtualFile): PsiComp
 
 fun runReadActionInSmartModeWithWritePriority(project: Project, validityCheck: () -> Boolean, action: () -> Unit): Boolean {
     // avoid deadlocks, IndexNotReadyException may be thrown later
-    val hasReadAccess = ApplicationManager.getApplication().isReadAccessAllowed ||
-        ApplicationManager.getApplication().isDispatchThread
+    if (ApplicationManager.getApplication().isDispatchThread) {
+        SlowOperations.assertSlowOperationsAreAllowed()
+        var result = false
+        runReadAction {
+            if (validityCheck()) {
+                action()
+                result = true
+            }
+        }
+        return result
+    }
+
+    val hasReadAccess = ApplicationManager.getApplication().isReadAccessAllowed
 
     val dumbService = DumbService.getInstance(project)
     val progressManager = ProgressManager.getInstance()
