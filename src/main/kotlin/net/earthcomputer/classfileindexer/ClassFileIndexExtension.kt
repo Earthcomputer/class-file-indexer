@@ -1,6 +1,7 @@
 package net.earthcomputer.classfileindexer
 
 import com.intellij.ide.highlighter.JavaClassFileType
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
 import com.intellij.util.indexing.FileBasedIndexExtension
@@ -39,6 +40,7 @@ class ClassFileIndexExtension :
 
     override fun getValueExternalizer() = object : DataExternalizer<Map<BinaryIndexKey, Map<String, Int>>> {
         override fun save(out: DataOutput, value: Map<BinaryIndexKey, Map<String, Int>>) {
+            ProgressManager.checkCanceled()
             DataInputOutputUtil.writeINT(out, value.size)
             for ((key, counts) in value) {
                 key.write(out, ::writeString)
@@ -51,6 +53,7 @@ class ClassFileIndexExtension :
         }
 
         override fun read(input: DataInput): Map<BinaryIndexKey, Map<String, Int>> {
+            ProgressManager.checkCanceled()
             val result = SmartMap<BinaryIndexKey, MutableMap<String, Int>>()
             repeat(DataInputOutputUtil.readINT(input)) {
                 val key = BinaryIndexKey.read(input, ::readString)
@@ -79,6 +82,7 @@ class ClassFileIndexExtension :
     }
 
     // TODO: when all this becomes stable API...
+    // TODO: could also take advantage of custom map implementations to call ProgressManager.checkCanceled() more often
 //    private val enumeratorPath: Path = IndexInfrastructure.getIndexRootDir(INDEX_ID).resolve("classfileindexer.constpool")
 //    private var enumerator = createEnumerator()
 //

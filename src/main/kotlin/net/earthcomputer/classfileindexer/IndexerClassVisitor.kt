@@ -1,6 +1,7 @@
 package net.earthcomputer.classfileindexer
 
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProgressManager
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.AnnotationVisitor
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassVisitor
 import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ConstantDynamic
@@ -21,6 +22,7 @@ class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     private val syntheticMethods = mutableSetOf<String>()
 
     fun addRef(name: String, key: BinaryIndexKey) {
+        ProgressManager.checkCanceled()
         index.computeIfAbsent(name.intern()) { SmartMap() }.computeIfAbsent(key) { SmartMap() }.merge(locationStack.peek(), 1, Integer::sum)
     }
     fun addClassRef(name: String) {
