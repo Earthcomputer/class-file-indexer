@@ -2,6 +2,10 @@
 
 # class-file-indexer Changelog
 
+## [1.1.1]
+### Added
+- Support for 2021.3
+
 ## [1.1.0]
 ### Changed
 - Improved performance
