@@ -1,8 +1,8 @@
 package net.earthcomputer.classfileindexer
 
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.AnnotationVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Opcodes
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.AnnotationVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Opcodes
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Type
 
 class IndexerAnnotationVisitor(private val cv: IndexerClassVisitor) : AnnotationVisitor(Opcodes.ASM9) {
     override fun visit(name: String?, value: Any?) {

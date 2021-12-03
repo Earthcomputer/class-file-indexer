@@ -1,12 +1,12 @@
 package net.earthcomputer.classfileindexer
 
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.AnnotationVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Handle
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Label
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.MethodVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Opcodes
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.TypePath
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.AnnotationVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Handle
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Label
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.MethodVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Opcodes
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Type
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.TypePath
 
 class IndexerMethodVisitor(
     private val cv: IndexerClassVisitor,

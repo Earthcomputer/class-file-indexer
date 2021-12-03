@@ -28,7 +28,7 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.SlowOperations
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Type
 
 private val internalNamesCache = MapMaker().weakKeys().makeMap<PsiClass, CachedValue<String?>>() // concurrent, uses identity for keys
 private fun PsiClass.computeInternalName(): String? {

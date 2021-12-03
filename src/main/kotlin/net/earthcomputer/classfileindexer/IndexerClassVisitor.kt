@@ -2,16 +2,16 @@ package net.earthcomputer.classfileindexer
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressManager
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.AnnotationVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ConstantDynamic
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.FieldVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Handle
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.MethodVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Opcodes
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.RecordComponentVisitor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.TypePath
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.AnnotationVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ClassVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ConstantDynamic
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.FieldVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Handle
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.MethodVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Opcodes
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.RecordComponentVisitor
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Type
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.TypePath
 
 class IndexerClassVisitor : ClassVisitor(Opcodes.ASM9) {
     lateinit var className: String

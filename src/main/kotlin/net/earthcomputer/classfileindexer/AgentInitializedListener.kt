@@ -72,7 +72,7 @@ class AgentInitializedListener : ApplicationInitializedListener {
             copyAgentClass("$AGENT_CLASS_NAME\$JavaReadWriteAccessDetectorMethodVisitor")
             copyAgentClass("$AGENT_CLASS_NAME\$UsageInfoLineNumberMethodVisitor")
 
-            copyAllAgentClasses("net.earthcomputer.classindexfinder.libs.org.objectweb.asm.", ::writeEntry)
+            copyAllAgentClasses("net.earthcomputer.classfileindexer.libs.org.objectweb.asm.", ::writeEntry)
         }
 
         val runtimeMxBeanName = ManagementFactory.getRuntimeMXBean().name

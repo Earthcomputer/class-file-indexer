@@ -10,7 +10,7 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.DataInputOutputUtil
 import com.intellij.util.io.KeyDescriptor
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassReader
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ClassReader
 import java.io.DataInput
 import java.io.DataOutput
 

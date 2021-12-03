@@ -6,7 +6,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.intellij.util.indexing.FileBasedIndex
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassReader
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ClassReader
 
 object ClassFileIndex {
     fun search(name: String, key: BinaryIndexKey, scope: SearchScope): Map<VirtualFile, Map<String, Int>> {

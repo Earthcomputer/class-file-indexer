@@ -68,7 +68,7 @@ abstract class MyRepackager : TransformAction<TransformParameters.None> {
                 val entriesSet = entriesList.mapTo(mutableSetOf()) { it.name }
                 for (entry in entriesList) {
                     val newName = if (entry.name.contains("/") && !entry.name.startsWith("META-INF/")) {
-                        "net/earthcomputer/classindexfinder/libs/" + entry.name
+                        "net/earthcomputer/classfileindexer/libs/" + entry.name
                     } else {
                         entry.name
                     }
@@ -82,7 +82,7 @@ abstract class MyRepackager : TransformAction<TransformParameters.None> {
                                     override fun map(internalName: String?): String? {
                                         if (internalName == null) return null
                                         return if (entriesSet.contains("$internalName.class")) {
-                                            "net/earthcomputer/classindexfinder/libs/$internalName"
+                                            "net/earthcomputer/classfileindexer/libs/$internalName"
                                         } else {
                                             internalName
                                         }

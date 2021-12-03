@@ -18,7 +18,7 @@ import com.intellij.usageView.UsageViewUtil
 import com.intellij.usages.TextChunk
 import com.intellij.usages.UsageInfo2UsageAdapter
 import com.intellij.usages.impl.UsagePreviewPanel
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Type
 import java.util.stream.Collectors
 
 open class FakeDecompiledElement<T : PsiElement>(

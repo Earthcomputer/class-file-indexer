@@ -1,13 +1,13 @@
 package net.earthcomputer.classfileindexer;
 
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassReader;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassVisitor;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.ClassWriter;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.FieldVisitor;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Label;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.MethodVisitor;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Opcodes;
-import net.earthcomputer.classindexfinder.libs.org.objectweb.asm.Type;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ClassReader;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ClassVisitor;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.ClassWriter;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.FieldVisitor;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Label;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.MethodVisitor;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Opcodes;
+import net.earthcomputer.classfileindexer.libs.org.objectweb.asm.Type;
 
 import java.io.File;
 import java.io.IOException;
