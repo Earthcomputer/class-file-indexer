@@ -13,6 +13,9 @@ import java.util.zip.ZipOutputStream
 buildscript {
     repositories {
         mavenCentral()
+        maven {
+            url = uri("https://plugins.gradle.org/m2/")
+        }
     }
     dependencies {
         classpath("org.ow2.asm:asm:9.2")
