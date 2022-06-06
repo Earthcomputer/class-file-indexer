@@ -16,8 +16,8 @@ buildscript {
         }
     }
     dependencies {
-        classpath("org.ow2.asm:asm:9.2")
-        classpath("org.ow2.asm:asm-commons:9.2")
+        classpath("org.ow2.asm:asm:9.3")
+        classpath("org.ow2.asm:asm-commons:9.3")
     }
 }
 
@@ -121,7 +121,7 @@ dependencies {
         to.attribute(repackagedAttribute, true).attribute(artifactTypeAttribute, "jar")
     }
 
-    repackage("org.ow2.asm:asm:9.2")
+    repackage("org.ow2.asm:asm:9.3")
     implementation(files(repackage.files))
 }
 
