@@ -34,7 +34,7 @@ plugins {
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
     // Gradle Qodana Plugin
-    id("org.jetbrains.qodana") version "0.1.13"
+    // id("org.jetbrains.qodana") version "0.1.13"
     // ktlint linter - read more: https://github.com/JLLeitschuh/ktlint-gradle
     id("org.jlleitschuh.gradle.ktlint") version "10.3.0"
 }
@@ -150,12 +150,12 @@ changelog {
 }
 
 // Configure Gradle Qodana Plugin - read more: https://github.com/JetBrains/gradle-qodana-plugin
-qodana {
+/*qodana {
     cachePath.set(projectDir.resolve(".qodana").canonicalPath)
     reportPath.set(projectDir.resolve("build/reports/inspections").canonicalPath)
     saveReport.set(true)
     showReport.set(System.getenv("QODANA_SHOW_REPORT")?.toBoolean() ?: false)
-}
+}*/
 
 tasks.register<proguard.gradle.ProGuardTask>("proguard") {
     verbose()
@@ -180,13 +180,13 @@ tasks.register<proguard.gradle.ProGuardTask>("proguard") {
 
     print("javaHome=$javaHome")
     // Add all JDK deps
-/*    if (!properties("skipProguard").toBoolean()) {
+    if (!properties("skipProguard").toBoolean()) {
         File("$javaHome/jmods/")
             .listFiles()!!
             .forEach {
                 libraryjars(it.absolutePath)
             }
-    }*/
+    }
 
 //    libraryjars(configurations.runtimeClasspath.get().files)
     val ideaPath = getIDEAPath()
