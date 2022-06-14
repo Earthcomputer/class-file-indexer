@@ -178,6 +178,7 @@ tasks.register<proguard.gradle.ProGuardTask>("proguard") {
 //            "$javaHome/jmods/java.base.jmod"
 //        )
 
+    print("javaHome=$javaHome")
     // Add all JDK deps
     if (! properties("skipProguard").toBoolean()) {
         File("$javaHome/jmods/").listFiles()!!.forEach { libraryjars(it.absolutePath) }
