@@ -180,13 +180,13 @@ tasks.register<proguard.gradle.ProGuardTask>("proguard") {
 
     print("javaHome=$javaHome")
     // Add all JDK deps
-    if (!properties("skipProguard").toBoolean()) {
+/*    if (!properties("skipProguard").toBoolean()) {
         File("$javaHome/jmods/")
             .listFiles()!!
             .forEach {
                 libraryjars(it.absolutePath)
             }
-    }
+    }*/
 
 //    libraryjars(configurations.runtimeClasspath.get().files)
     val ideaPath = getIDEAPath()
