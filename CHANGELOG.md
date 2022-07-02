@@ -2,6 +2,12 @@
 
 # class-file-indexer Changelog
 
+## [Unreleased]
+### Added
+- Support for 2022.1
+### Changed
+- Update dependencies
+
 ## [1.1.1]
 ### Added
 - Support for 2021.3
