@@ -18,7 +18,7 @@ buildscript {
     dependencies {
         classpath("org.ow2.asm:asm:9.3")
         classpath("org.ow2.asm:asm-commons:9.3")
-        classpath("com.guardsquare:proguard-gradle:7.1.0")
+        classpath("com.guardsquare:proguard-gradle:7.2.2")
     }
 }
 
